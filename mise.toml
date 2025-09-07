@@ -76,13 +76,13 @@ echo "✅ Project setup complete!"
   description = "Run tests with coverage"
   run         = "uv run pytest --cov=core --cov=apps --cov=storage --cov-report=term-missing"
 
-[tasks."test:unit"]
-  description = "Run unit tests only"
-  run         = "uv run pytest -m unit"
+[tasks."test:fast"]
+  description = "Run fast tests only"
+  run         = "uv run pytest -m \"not slow\""
 
-[tasks."test:integration"]
-  description = "Run integration tests only"
-  run         = "uv run pytest -m integration"
+[tasks."test:slow"]
+  description = "Run slow tests only"
+  run         = "uv run pytest -m slow"
 
 [tasks.check]
   description = "Run all checks (format, lint, typecheck, test)"

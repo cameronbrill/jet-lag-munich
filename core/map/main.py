@@ -9,6 +9,144 @@ import pandas as pd
 from core.logging import get_logger
 
 
+def create_visual_map(
+    stations_gdf: gpd.GeoDataFrame | None = None,
+    lines_gdf: gpd.GeoDataFrame | None = None,
+    boundary_gdf: gpd.GeoDataFrame | None = None,
+    output_path: Path | None = None,
+    title: str = "Munich Transit Map",
+) -> bytes | None:
+    """Create a visual map showing stations, lines, and boundary for snapshot testing.
+
+    Args:
+        stations_gdf: GeoDataFrame containing station points
+        lines_gdf: GeoDataFrame containing transit lines
+        boundary_gdf: GeoDataFrame containing Munich boundary
+        output_path: Path to save the map image (if None, returns image bytes)
+        title: Title for the map
+
+    Returns:
+        Image bytes if output_path is None, otherwise None
+    """
+    import contextily as ctx
+    import matplotlib.pyplot as plt
+
+    logger = get_logger(__name__)
+
+    # Create figure and axis
+    fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+
+    # Track if we have any data to plot
+    has_data = False
+
+    # Plot boundary first (as background)
+    if boundary_gdf is not None and len(boundary_gdf) > 0:
+        boundary_gdf.plot(
+            ax=ax, facecolor="lightblue", edgecolor="blue", alpha=0.3, linewidth=2, label="Munich Boundary"
+        )
+        has_data = True
+        logger.debug("Plotted boundary", features=len(boundary_gdf))
+
+    # Plot transit lines
+    if lines_gdf is not None and len(lines_gdf) > 0:
+        # Use different colors for different line types
+        line_colors = {"U": "red", "S": "green", "T": "orange"}  # U-Bahn, S-Bahn, Tram
+
+        for line_type, color in line_colors.items():
+            type_lines = (
+                lines_gdf[lines_gdf["name"].str.startswith(line_type, na=False)]
+                if "name" in lines_gdf.columns
+                else gpd.GeoDataFrame()
+            )
+            if len(type_lines) > 0:
+                type_lines.plot(ax=ax, color=color, linewidth=1.5, alpha=0.8, label=f"{line_type}-Lines")
+
+        # Plot any remaining lines in default color
+        plotted_lines = (
+            pd.concat(
+                [
+                    lines_gdf[lines_gdf["name"].str.startswith(line_type, na=False)]
+                    if "name" in lines_gdf.columns
+                    else gpd.GeoDataFrame()
+                    for line_type in line_colors
+                ]
+            )
+            if "name" in lines_gdf.columns
+            else gpd.GeoDataFrame()
+        )
+
+        remaining_lines = lines_gdf[~lines_gdf.index.isin(plotted_lines.index)] if len(plotted_lines) > 0 else lines_gdf
+        if len(remaining_lines) > 0:
+            remaining_lines.plot(ax=ax, color="gray", linewidth=1, alpha=0.6, label="Other Lines")
+
+        has_data = True
+        logger.debug("Plotted transit lines", features=len(lines_gdf))
+
+    # Plot stations on top
+    if stations_gdf is not None and len(stations_gdf) > 0:
+        stations_gdf.plot(ax=ax, color="black", markersize=8, alpha=0.7, label="Stations")
+        has_data = True
+        logger.debug("Plotted stations", features=len(stations_gdf))
+
+    if not has_data:
+        logger.warning("No data provided for visual map")
+        plt.close(fig)
+        return None
+
+    # Add basemap for context
+    try:
+        # Convert to Web Mercator for contextily
+        if boundary_gdf is not None and len(boundary_gdf) > 0:
+            bounds_gdf = boundary_gdf.to_crs(epsg=3857)
+        elif stations_gdf is not None and len(stations_gdf) > 0:
+            bounds_gdf = stations_gdf.to_crs(epsg=3857)
+        elif lines_gdf is not None and len(lines_gdf) > 0:
+            bounds_gdf = lines_gdf.to_crs(epsg=3857)
+        else:
+            bounds_gdf = None
+
+        if bounds_gdf is not None:
+            ctx.add_basemap(
+                ax,
+                crs=bounds_gdf.crs,
+                source=ctx.providers.CartoDB.Positron,  # Clean, minimal basemap
+                alpha=0.5,
+            )
+            logger.debug("Added basemap")
+    except Exception as e:
+        logger.warning("Could not add basemap", error=str(e))
+
+    # Customize the map
+    ax.set_title(title, fontsize=16, fontweight="bold")
+    ax.set_xlabel("Longitude", fontsize=12)
+    ax.set_ylabel("Latitude", fontsize=12)
+
+    # Add legend
+    ax.legend(loc="upper right", framealpha=0.9)
+
+    # Remove axis ticks for cleaner look
+    ax.tick_params(axis="both", which="major", labelsize=10)
+
+    # Tight layout
+    plt.tight_layout()
+
+    # Save or return bytes
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
+        logger.info("Saved visual map", output_path=str(output_path))
+        plt.close(fig)
+        return None
+    # Return image as bytes for snapshot testing
+    import io
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+    buf.seek(0)
+    image_bytes = buf.getvalue()
+    plt.close(fig)
+    return image_bytes
+
+
 def extract_line_name(row: pd.Series) -> str:
     """Extract single human-readable line name from GeoJSON feature properties.
 
@@ -112,7 +250,7 @@ def extract_boundary_polygon(boundary_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame
             "Extracted boundary polygon",
             geom_type=geom.geom_type,
             boundary_points=len(boundary_polygon.exterior.coords),
-            area=boundary_polygon.area
+            area=boundary_polygon.area,
         )
 
     if boundary_lines:
@@ -152,7 +290,8 @@ def create_stations_csv(points_gdf: gpd.GeoDataFrame, endpoint_name: str) -> pd.
             if pd.notna(x) and str(x).strip() != "":
                 return str(x).strip()
             return fallback_description
-        stations_df["Description"] = stations_df["station_label"].apply( # pyright: ignore[reportUnknownMemberType]
+
+        stations_df["Description"] = stations_df["station_label"].apply(  # pyright: ignore[reportUnknownMemberType]
             _station_label_application_func
         )
     else:
@@ -216,8 +355,8 @@ def create_lines_csv(lines_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     expanded_lines = split_multi_line_entries(lines_gdf)
 
     lines_df = expanded_lines.copy()
-    lines_df["WKT"] = lines_df.geometry.to_wkt() # pyright: ignore[reportUnknownMemberType]
-    lines_df["name"] = lines_df.apply(extract_line_name, axis=1) # pyright: ignore[reportUnknownMemberType]
+    lines_df["WKT"] = lines_df.geometry.to_wkt()  # pyright: ignore[reportUnknownMemberType]
+    lines_df["name"] = lines_df.apply(extract_line_name, axis=1)  # pyright: ignore[reportUnknownMemberType]
 
     # Create Description column from dbg_lines or use line name
     if "dbg_lines" in lines_df.columns:
@@ -336,7 +475,9 @@ class MunichGeoJson(str, Enum):
     SUBWAY_LIGHTRAIL = "https://loom.cs.uni-freiburg.de/components/subway-lightrail/13/component-220.json"
     TRAM = "https://loom.cs.uni-freiburg.de/components/tram/13/component-176.json"
     COMMUTER_RAIL = "https://loom.cs.uni-freiburg.de/components/rail-commuter/13/component-78.json"
-    BOUNDARY = "https://nominatim.openstreetmap.org/search.php?q=Munich&polygon_geojson=1&format=geojson&countrycodes=de"
+    BOUNDARY = (
+        "https://nominatim.openstreetmap.org/search.php?q=Munich&polygon_geojson=1&format=geojson&countrycodes=de"
+    )
 
 
 def main() -> None:
@@ -383,7 +524,7 @@ def main() -> None:
             gdf = gpd.read_file(temp_geojson)  # pyright: ignore[reportUnknownMemberType]
 
             # Analyze geometry types
-            geometry_types = gdf.geometry.geom_type.value_counts().to_dict() # pyright: ignore[reportUnknownMemberType]
+            geometry_types = gdf.geometry.geom_type.value_counts().to_dict()  # pyright: ignore[reportUnknownMemberType]
             logger.info(
                 "Loaded GeoJSON data",
                 endpoint=endpoint.name,

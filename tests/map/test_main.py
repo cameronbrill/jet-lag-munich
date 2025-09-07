@@ -213,10 +213,7 @@ class TestExtractBoundaryLine:
 
         # Create a simple polygon (square)
         polygon = Polygon([(11.0, 48.0), (11.1, 48.0), (11.1, 48.1), (11.0, 48.1), (11.0, 48.0)])
-        data = {
-            "geometry": [polygon],
-            "name": ["Munich"]
-        }
+        data = {"geometry": [polygon], "name": ["Munich"]}
         boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
 
         result = extract_boundary_polygon(boundary_gdf)
@@ -236,10 +233,7 @@ class TestExtractBoundaryLine:
         large_poly = Polygon([(11.0, 48.0), (11.2, 48.0), (11.2, 48.2), (11.0, 48.2), (11.0, 48.0)])
         multipolygon = MultiPolygon([small_poly, large_poly])
 
-        data = {
-            "geometry": [multipolygon],
-            "name": ["Munich"]
-        }
+        data = {"geometry": [multipolygon], "name": ["Munich"]}
         boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
 
         result = extract_boundary_polygon(boundary_gdf)
@@ -256,10 +250,7 @@ class TestExtractBoundaryLine:
 
         # Create a simple polygon
         polygon = Polygon([(11.0, 48.0), (11.1, 48.0), (11.1, 48.1), (11.0, 48.1), (11.0, 48.0)])
-        data = {
-            "geometry": [polygon],
-            "name": ["Munich"]
-        }
+        data = {"geometry": [polygon], "name": ["Munich"]}
         boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
 
         result = extract_boundary_polygon(boundary_gdf)
