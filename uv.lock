@@ -110,7 +110,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "gdal" }]
+requires-dist = [{ name = "gdal", specifier = "==3.11.3" }]
 
 [package.metadata.requires-dev]
 dev = [

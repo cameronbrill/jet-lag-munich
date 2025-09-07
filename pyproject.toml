@@ -4,7 +4,7 @@
   description     = "Add your description here"
   readme          = "README.md"
   requires-python = ">=3.13"
-  dependencies    = ["GDAL==3.4.1"]
+  dependencies    = ["GDAL==3.11.3"]
 
 [dependency-groups]
 
