@@ -1,7 +1,6 @@
 from enum import Enum
 from pathlib import Path
 import re
-from typing import Callable
 
 import geopandas as gpd
 import httpx
@@ -50,8 +49,14 @@ def fetch_geojson_data(url: str, timeout: float = 30.0) -> str:
         httpx.RequestError: For network errors
         httpx.HTTPStatusError: For HTTP errors
     """
+    headers = {}
+
+    # Add User-Agent for OpenStreetMap/Nominatim requests
+    if "nominatim.openstreetmap.org" in url:
+        headers["User-Agent"] = "jet-lag-munich/0.1.0 (https://github.com/cameronbrill/jet-lag-munich)"
+
     with httpx.Client() as client:
-        response = client.get(url, timeout=timeout)
+        response = client.get(url, timeout=timeout, headers=headers)
         response.raise_for_status()
         return response.text
 
@@ -68,6 +73,52 @@ def separate_geometries(gdf: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, gpd.Ge
     points_gdf = gdf[gdf.geometry.geom_type == "Point"].copy()
     lines_gdf = gdf[gdf.geometry.geom_type == "LineString"].copy()
     return points_gdf, lines_gdf
+
+
+def extract_boundary_polygon(boundary_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Extract boundary polygon from polygon/multipolygon geometries.
+
+    Args:
+        boundary_gdf: GeoDataFrame containing polygon geometries
+
+    Returns:
+        GeoDataFrame with Polygon geometry for Google My Maps area tinting
+    """
+
+    logger = get_logger(__name__)
+    boundary_lines = []
+
+    for idx, row in boundary_gdf.iterrows():
+        geom = row.geometry
+
+        if geom.geom_type == "Polygon":
+            # Keep the polygon as-is for Google My Maps tinting
+            boundary_polygon = geom
+        elif geom.geom_type == "MultiPolygon":
+            # Find the largest polygon and keep it as a polygon
+            boundary_polygon = max(geom.geoms, key=lambda p: p.area)
+        else:
+            # Skip non-polygon geometries
+            logger.debug("Skipping non-polygon geometry", geom_type=geom.geom_type)
+            continue
+
+        # Create new row with boundary polygon
+        new_row = row.copy()
+        new_row.geometry = boundary_polygon
+        new_row["name"] = "Munich Boundary"
+        boundary_lines.append(new_row)
+
+        logger.info(
+            "Extracted boundary polygon",
+            geom_type=geom.geom_type,
+            boundary_points=len(boundary_polygon.exterior.coords),
+            area=boundary_polygon.area
+        )
+
+    if boundary_lines:
+        return gpd.GeoDataFrame(boundary_lines, crs=boundary_gdf.crs)
+    # Return empty GeoDataFrame with same structure
+    return gpd.GeoDataFrame(columns=boundary_gdf.columns, crs=boundary_gdf.crs)
 
 
 def create_stations_csv(points_gdf: gpd.GeoDataFrame, endpoint_name: str) -> pd.DataFrame:
@@ -97,9 +148,12 @@ def create_stations_csv(points_gdf: gpd.GeoDataFrame, endpoint_name: str) -> pd.
 
     if "station_label" in stations_df.columns:
         # Use station_label value directly, fallback to rail-type specific description
-        station_label_application_func: Callable[[str], str] = lambda x: str(x).strip() if pd.notna(x) and str(x).strip() != "" else fallback_description
+        def _station_label_application_func(x: str) -> str:
+            if pd.notna(x) and str(x).strip() != "":
+                return str(x).strip()
+            return fallback_description
         stations_df["Description"] = stations_df["station_label"].apply( # pyright: ignore[reportUnknownMemberType]
-            station_label_application_func
+            _station_label_application_func
         )
     else:
         stations_df["Description"] = fallback_description
@@ -282,7 +336,7 @@ class MunichGeoJson(str, Enum):
     SUBWAY_LIGHTRAIL = "https://loom.cs.uni-freiburg.de/components/subway-lightrail/13/component-220.json"
     TRAM = "https://loom.cs.uni-freiburg.de/components/tram/13/component-176.json"
     COMMUTER_RAIL = "https://loom.cs.uni-freiburg.de/components/rail-commuter/13/component-78.json"
-    BOUNDARY = "https://nominatim.openstreetmap.org/search.php?q=Munich&polygon_geojson=1&format=geojson"
+    BOUNDARY = "https://nominatim.openstreetmap.org/search.php?q=Munich&polygon_geojson=1&format=geojson&countrycodes=de"
 
 
 def main() -> None:
@@ -343,7 +397,39 @@ def main() -> None:
                 gdf = gdf.to_crs("EPSG:4326")
                 logger.info("Converted CRS to WGS84", endpoint=endpoint.name)
 
-            # Separate geometries
+            # Handle boundary data differently
+            if endpoint.name == "BOUNDARY":
+                # Extract boundary polygon from polygon/multipolygon
+                boundary_polygon_gdf = extract_boundary_polygon(gdf)
+
+                if len(boundary_polygon_gdf) > 0:
+                    # Create CSV for boundary (will use WKT POLYGON format for Google My Maps tinting)
+                    boundary_csv = create_lines_csv(boundary_polygon_gdf)
+                    boundary_csv_file = output_dir / "munich_boundary.csv"
+                    boundary_csv.to_csv(boundary_csv_file, index=False)
+
+                    # Create KML for boundary
+                    boundary_kml = output_dir / "munich_boundary.kml"
+                    create_simple_kml(boundary_polygon_gdf, "munich_boundary", boundary_kml)
+
+                    logger.info(
+                        "Successfully converted boundary to CSV and KML",
+                        endpoint=endpoint.name,
+                        csv_file=str(boundary_csv_file),
+                        csv_size_bytes=boundary_csv_file.stat().st_size,
+                        kml_file=str(boundary_kml),
+                        kml_size_bytes=boundary_kml.stat().st_size,
+                        boundary_features=len(boundary_polygon_gdf),
+                    )
+                else:
+                    logger.warning("No boundary data found", endpoint=endpoint.name)
+
+                # Clean up and continue to next endpoint
+                temp_geojson.unlink()
+                logger.debug("Cleaned up temporary file", temp_file=str(temp_geojson))
+                continue
+
+            # Separate geometries for transit data
             points_gdf, lines_gdf = separate_geometries(gdf)
 
             # Google My Maps limits: max 2,000 rows, 5MB file size

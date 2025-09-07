@@ -15,6 +15,7 @@ from core.map.main import (
     create_lines_csv,
     create_simple_kml,
     create_stations_csv,
+    extract_boundary_polygon,
     extract_line_name,
     fetch_geojson_data,
     main,
@@ -86,7 +87,7 @@ class TestFetchGeojsonData:
         result = fetch_geojson_data("https://example.com/data.json")
 
         assert result == '{"type": "FeatureCollection"}'
-        mock_client.get.assert_called_once_with("https://example.com/data.json", timeout=30.0)
+        mock_client.get.assert_called_once_with("https://example.com/data.json", timeout=30.0, headers={})
 
     @patch("core.map.main.httpx.Client")
     def test_raises_request_error_on_network_failure(self, mock_client_class):
@@ -201,6 +202,79 @@ class TestCreateStationsCsv:
         # Should include Description with station names
         assert result.iloc[0]["Description"] == "Marienplatz"
         assert result.iloc[1]["Description"] == "Unknown Subway Station"  # Rail-type specific fallback
+
+
+class TestExtractBoundaryLine:
+    """Test extraction of boundary line from polygon/multipolygon geometries."""
+
+    def test_preserves_polygon_geometry_for_google_maps_tinting(self):
+        """Should preserve polygon geometry to enable Google My Maps area tinting."""
+        from shapely.geometry import Polygon
+
+        # Create a simple polygon (square)
+        polygon = Polygon([(11.0, 48.0), (11.1, 48.0), (11.1, 48.1), (11.0, 48.1), (11.0, 48.0)])
+        data = {
+            "geometry": [polygon],
+            "name": ["Munich"]
+        }
+        boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = extract_boundary_polygon(boundary_gdf)
+
+        # Should return a GeoDataFrame with Polygon geometry (not LineString)
+        assert len(result) == 1
+        assert result.iloc[0].geometry.geom_type == "Polygon"
+        assert "name" in result.columns
+        assert result.iloc[0]["name"] == "Munich Boundary"
+
+    def test_handles_multipolygon_by_taking_largest(self):
+        """Should extract boundary from the largest polygon in a MultiPolygon."""
+        from shapely.geometry import MultiPolygon, Polygon
+
+        # Create MultiPolygon with different sized polygons
+        small_poly = Polygon([(11.0, 48.0), (11.01, 48.0), (11.01, 48.01), (11.0, 48.01), (11.0, 48.0)])
+        large_poly = Polygon([(11.0, 48.0), (11.2, 48.0), (11.2, 48.2), (11.0, 48.2), (11.0, 48.0)])
+        multipolygon = MultiPolygon([small_poly, large_poly])
+
+        data = {
+            "geometry": [multipolygon],
+            "name": ["Munich"]
+        }
+        boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = extract_boundary_polygon(boundary_gdf)
+
+        # Should extract the larger polygon
+        assert len(result) == 1
+        assert result.iloc[0].geometry.geom_type == "Polygon"
+        # The boundary should have more area (from the larger polygon)
+        assert result.iloc[0].geometry.area > 0.01
+
+    def test_creates_polygon_wkt_for_google_maps_tinting(self):
+        """Should create POLYGON WKT format for Google My Maps area tinting."""
+        from shapely.geometry import Polygon
+
+        # Create a simple polygon
+        polygon = Polygon([(11.0, 48.0), (11.1, 48.0), (11.1, 48.1), (11.0, 48.1), (11.0, 48.0)])
+        data = {
+            "geometry": [polygon],
+            "name": ["Munich"]
+        }
+        boundary_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+        result = extract_boundary_polygon(boundary_gdf)
+
+        # Should preserve polygon for area tinting
+        assert len(result) == 1
+        assert result.iloc[0].geometry.geom_type == "Polygon"
+
+        # When converted to CSV, should create POLYGON WKT
+        boundary_csv = create_lines_csv(result)
+        wkt_value = boundary_csv.iloc[0]["WKT"]
+        assert wkt_value.startswith("POLYGON")
+        # The name will be "Unknown Line" since boundary polygons don't have dbg_lines
+        # but the important thing is we get POLYGON WKT format
+        assert boundary_csv.iloc[0]["name"] == "Unknown Line"
 
 
 class TestCreateSimpleKml:
@@ -379,5 +453,5 @@ class TestMainFunctionIntegration:
             # This should not raise any exceptions
             main()
 
-        # Should have called fetch for all endpoints
-        assert mock_fetch.call_count == 3
+        # Should have called fetch for all endpoints (including BOUNDARY)
+        assert mock_fetch.call_count == 4
