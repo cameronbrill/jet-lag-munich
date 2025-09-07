@@ -111,4 +111,4 @@ echo "✅ Cleaned project artifacts"
   run         = "uv build"
 
 [tasks.cli]
-  run = "uv run cli"
+  run = "uv run map"

@@ -1,10 +1,15 @@
 [project]
-  name            = "jet-lag-munich"
-  version         = "0.1.0"
-  description     = "Add your description here"
-  readme          = "README.md"
+  name = "jet-lag-munich"
+  version = "0.1.0"
+  description = "Add your description here"
+  readme = "README.md"
   requires-python = ">=3.13"
-  dependencies    = ["GDAL==3.4.1"]
+  dependencies = [
+    "GDAL==3.4.1",
+    "geopandas==1.1.1",
+    "httpx==0.28.1",
+    "structlog>=25.4.0",
+  ]
 
 [dependency-groups]
 
@@ -24,7 +29,7 @@
   ]
 
   [project.scripts]
-    map = "core.map.main:app"
+    map = "core.map.main:main"
 
 [build-system]
   requires      = ["setuptools>=70"]
