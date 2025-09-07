@@ -9,7 +9,7 @@ runs:
       with:
         install: true
         cache: true
-        install_args: "python uv"
+        install_args: "python uv \"github:OSGeo/gdal\""
 
     - name: Restore uv cache
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
