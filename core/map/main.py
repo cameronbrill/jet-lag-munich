@@ -10,17 +10,18 @@ from core.logging import get_logger
 
 
 def extract_line_name(row: pd.Series) -> str:
-    """Extract human-readable line name from GeoJSON feature properties.
+    """Extract single human-readable line name from GeoJSON feature properties.
 
     Args:
         row: Pandas Series containing feature properties
 
     Returns:
-        Human-readable line name (e.g., "U5", "S1", "U4,U5")
+        Single line name (e.g., "U5", "S1") - first one if multiple exist
     """
     # First try dbg_lines (contains readable names like "U5", "S1")
     if 'dbg_lines' in row and pd.notna(row['dbg_lines']) and row['dbg_lines'] != '':
-        return str(row['dbg_lines'])
+        line_names = str(row['dbg_lines']).split(',')
+        return line_names[0].strip()  # Return first line name only
 
     # Try parsing the 'lines' field which contains JSON-like data
     if 'lines' in row and pd.notna(row['lines']):
@@ -28,7 +29,7 @@ def extract_line_name(row: pd.Series) -> str:
         # Extract labels from lines data (e.g., "U5", "S1")
         labels = re.findall(r'"label":\s*"([^"]+)"', lines_str)
         if labels:
-            return ', '.join(labels)
+            return labels[0].strip()  # Return first label only
 
     # Fallback to generic name
     return "Unknown Line"
@@ -69,37 +70,85 @@ def separate_geometries(gdf: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame, gpd.Ge
 
 
 def create_stations_csv(points_gdf: gpd.GeoDataFrame, endpoint_name: str) -> pd.DataFrame:
-    """Create CSV DataFrame for stations with lat/lng columns.
+    """Create CSV DataFrame for stations with Google My Maps compatible columns.
 
     Args:
         points_gdf: GeoDataFrame containing point geometries
         endpoint_name: Name of the endpoint for fallback naming
 
     Returns:
-        DataFrame ready for CSV export
+        DataFrame ready for CSV export with Google My Maps compatible column names
     """
     stations_df = points_gdf.copy()
+
+    # Create basic latitude/longitude columns (lowercase) for Google My Maps
     stations_df['latitude'] = stations_df.geometry.y
     stations_df['longitude'] = stations_df.geometry.x
 
-    # Create a clean name field
-    if 'lines' in stations_df.columns:
-        stations_df['name'] = stations_df['lines'].fillna(f"{endpoint_name} Station")
-    elif 'station_label' in stations_df.columns:
-        stations_df['name'] = stations_df['station_label'].fillna(f"{endpoint_name} Station")
-    else:
-        stations_df['name'] = f"{endpoint_name} Station"
+    # Create generic station names (lowercase 'name' column)
+    stations_df['name'] = f"{endpoint_name} Station"
 
-    # Select only essential columns for Google My Maps
-    essential_cols = ['name', 'latitude', 'longitude']
-    if 'lines' in stations_df.columns:
-        essential_cols.append('lines')
+    # Create description field using station_label directly
+    # Map endpoint names to human-readable rail types
+    rail_type_map = {
+        'SUBWAY_LIGHTRAIL': 'Subway',
+        'TRAM': 'Tram',
+        'COMMUTER_RAIL': 'Commuter Rail'
+    }
+    rail_type = rail_type_map.get(endpoint_name, endpoint_name)
+    fallback_description = f"Unknown {rail_type} Station"
+
     if 'station_label' in stations_df.columns:
-        essential_cols.append('station_label')
+        # Use station_label value directly, fallback to rail-type specific description
+        stations_df['Description'] = stations_df['station_label'].apply(
+            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() != '' else fallback_description
+        )
+    else:
+        stations_df['Description'] = fallback_description
 
-    # Keep only columns that exist
-    available_cols = [col for col in essential_cols if col in stations_df.columns]
-    return stations_df[available_cols]
+    # Select Google My Maps compatible columns (include Description for station names)
+    google_columns = ['name', 'latitude', 'longitude', 'Description']
+    return stations_df[google_columns]
+
+
+def split_multi_line_entries(lines_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Split multi-line entries into separate rows for each individual line.
+
+    Args:
+        lines_gdf: GeoDataFrame containing line geometries with potentially multi-line entries
+
+    Returns:
+        GeoDataFrame with each line as a separate row
+    """
+    expanded_rows = []
+
+    for idx, row in lines_gdf.iterrows():
+        # Extract all line names from dbg_lines or lines field
+        line_names = []
+
+        if 'dbg_lines' in row and pd.notna(row['dbg_lines']) and row['dbg_lines'] != '':
+            line_names = [name.strip() for name in str(row['dbg_lines']).split(',')]
+        elif 'lines' in row and pd.notna(row['lines']):
+            lines_str = str(row['lines'])
+            labels = re.findall(r'"label":\s*"([^"]+)"', lines_str)
+            line_names = [label.strip() for label in labels]
+
+        # If no line names found, use fallback
+        if not line_names:
+            line_names = ["Unknown Line"]
+
+        # Create a separate row for each line name
+        for line_name in line_names:
+            new_row = row.copy()
+            # Update the dbg_lines field to contain only this specific line
+            if 'dbg_lines' in new_row:
+                new_row['dbg_lines'] = line_name
+            expanded_rows.append(new_row)
+
+    # Create new GeoDataFrame from expanded rows
+    if expanded_rows:
+        return gpd.GeoDataFrame(expanded_rows, crs=lines_gdf.crs)
+    return lines_gdf.copy()
 
 
 def create_lines_csv(lines_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -109,23 +158,28 @@ def create_lines_csv(lines_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
         lines_gdf: GeoDataFrame containing line geometries
 
     Returns:
-        DataFrame ready for CSV export
+        DataFrame ready for CSV export with each line as a separate entry
     """
-    lines_df = lines_gdf.copy()
+    # First split multi-line entries into separate rows
+    expanded_lines = split_multi_line_entries(lines_gdf)
+
+    lines_df = expanded_lines.copy()
     lines_df['WKT'] = lines_df.geometry.to_wkt()
     lines_df['name'] = lines_df.apply(extract_line_name, axis=1)
 
-    # Select essential columns for CSV
-    essential_cols = ['name', 'WKT']
+    # Create Description column from dbg_lines or use line name
     if 'dbg_lines' in lines_df.columns:
-        essential_cols.append('dbg_lines')
+        lines_df['Description'] = lines_df['dbg_lines']
+    else:
+        lines_df['Description'] = lines_df['name']
 
-    available_cols = [col for col in essential_cols if col in lines_df.columns]
-    return lines_df[available_cols]
+    # Select essential columns for CSV (use Description instead of dbg_lines)
+    essential_cols = ['name', 'WKT', 'Description']
+    return lines_df[essential_cols]
 
 
 def create_simple_kml(gdf: gpd.GeoDataFrame, name: str, output_file: Path) -> None:
-    """Create simplified KML file compatible with Google My Maps.
+    """Create ultra-simple KML file for maximum Google My Maps compatibility.
 
     Args:
         gdf: GeoDataFrame containing geometries
@@ -138,12 +192,11 @@ def create_simple_kml(gdf: gpd.GeoDataFrame, name: str, output_file: Path) -> No
         f.write('<Document>\n')
         f.write(f'<name>{name}</name>\n')
 
+        # Create ultra-simple placemarks without schema or extended data
         for idx, row in gdf.iterrows():
-            # Determine name based on geometry type
             if row.geometry.geom_type == "Point":
-                if 'lines' in row and pd.notna(row['lines']):
-                    feature_name = str(row['lines'])
-                elif 'station_label' in row and pd.notna(row['station_label']):
+                # Use station_label if available, otherwise generic name
+                if 'station_label' in row and pd.notna(row['station_label']) and str(row['station_label']).strip():
                     feature_name = str(row['station_label'])
                 else:
                     feature_name = f"Station {idx}"
@@ -191,6 +244,13 @@ def main() -> None:
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
     logger.info("Created output directory", path=str(output_dir))
+
+    # Clear existing CSV files before generating new ones
+    existing_csvs = list(output_dir.glob("*.csv"))
+    if existing_csvs:
+        for csv_file in existing_csvs:
+            csv_file.unlink()
+        logger.info("Cleared existing CSV files", count=len(existing_csvs))
 
     # Process each endpoint in MunichGeoJson
     total_endpoints = len(MunichGeoJson)
@@ -288,9 +348,10 @@ def main() -> None:
                 lines_csv = output_dir / f"munich_{endpoint.name.lower()}_lines.csv"
                 lines_clean.to_csv(lines_csv, index=False)
 
-                # Create and save simplified KML
+                # Create and save simplified KML (use split lines for consistency)
                 lines_kml = output_dir / f"munich_{endpoint.name.lower()}_lines_google.kml"
-                create_simple_kml(lines_gdf, f"{endpoint.name} Lines", lines_kml)
+                expanded_lines = split_multi_line_entries(lines_gdf)
+                create_simple_kml(expanded_lines, f"{endpoint.name} Lines", lines_kml)
 
                 logger.info(
                     "Successfully converted lines to CSV and Google-compatible KML",

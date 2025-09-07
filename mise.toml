@@ -110,5 +110,5 @@ echo "✅ Cleaned project artifacts"
   description = "Build distribution packages"
   run         = "uv build"
 
-[tasks.cli]
+[tasks.gen]
   run = "uv run map"

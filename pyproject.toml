@@ -37,7 +37,7 @@
   build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-  include = ["core*", "storage*", "configs*"]
+  include = ["core*"]
   exclude = ["tests*", "scripts*"]
 
 [tool.pytest.ini_options]

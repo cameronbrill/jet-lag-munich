@@ -13,6 +13,7 @@ from shapely.geometry import LineString, Point
 
 from core.map.main import (
     create_lines_csv,
+    create_simple_kml,
     create_stations_csv,
     extract_line_name,
     fetch_geojson_data,
@@ -43,8 +44,8 @@ class TestExtractLineName:
 
         assert result == 'U5'
 
-    def test_extracts_multiple_labels_from_lines_json(self):
-        """Should extract and join multiple line labels."""
+    def test_extracts_first_label_from_multiple_lines(self):
+        """Should extract first line name when multiple are present."""
         row = pd.Series({
             'dbg_lines': 'U4,U5',
             'lines': '[{"label": "U4"}, {"label": "U5"}]'
@@ -52,7 +53,7 @@ class TestExtractLineName:
 
         result = extract_line_name(row)
 
-        assert result == 'U4,U5'  # Should use dbg_lines first
+        assert result == 'U4'  # Should return first line name only
 
     def test_falls_back_to_unknown_line_when_no_data(self):
         """Should return fallback name when no line data available."""
@@ -61,6 +62,17 @@ class TestExtractLineName:
         result = extract_line_name(row)
 
         assert result == 'Unknown Line'
+
+    def test_returns_individual_line_names_not_combined(self):
+        """Should return individual line names, not comma-separated combinations."""
+        # This test will fail with current implementation but defines expected behavior
+        row = pd.Series({'dbg_lines': 'S1,S6,S8'})
+
+        result = extract_line_name(row)
+
+        # Should return the first line name only, not the combined string
+        # Line splitting should be handled at a higher level
+        assert result == 'S1'
 
 
 class TestFetchGeojsonData:
@@ -134,8 +146,8 @@ class TestSeparateGeometries:
 class TestCreateStationsCsv:
     """Test creation of stations CSV with lat/lng columns."""
 
-    def test_creates_csv_with_lat_lng_columns(self):
-        """Should create DataFrame with latitude and longitude columns."""
+    def test_creates_csv_with_basic_google_maps_format(self):
+        """Should create DataFrame with basic Google My Maps format including Description."""
         data = {
             'geometry': [Point(11.5, 48.1), Point(11.6, 48.2)],
             'station_label': ['Marienplatz', 'Hauptbahnhof']
@@ -144,29 +156,107 @@ class TestCreateStationsCsv:
 
         result = create_stations_csv(points_gdf, "TEST")
 
-        assert 'latitude' in result.columns
-        assert 'longitude' in result.columns
+        # Should have essential columns including Description for station names
+        assert 'name' in result.columns  # lowercase 'name'
+        assert 'latitude' in result.columns  # lowercase 'latitude'
+        assert 'longitude' in result.columns  # lowercase 'longitude'
+        assert 'Description' in result.columns  # Description with actual station names
+
+        # Should have 4 columns total
+        assert len(result.columns) == 4
+
+        # Coordinates should be simple decimal numbers
         assert result.iloc[0]['latitude'] == 48.1
         assert result.iloc[0]['longitude'] == 11.5
+        assert result.iloc[1]['latitude'] == 48.2
+        assert result.iloc[1]['longitude'] == 11.6
 
-    def test_uses_station_label_for_name_when_available(self):
-        """Should use station_label field for station names."""
+        # Description should contain actual station names
+        assert result.iloc[0]['Description'] == 'Marienplatz'
+        assert result.iloc[1]['Description'] == 'Hauptbahnhof'
+
+    def test_uses_generic_station_names_not_labels(self):
+        """Should use generic station names, not actual station labels."""
         data = {
-            'geometry': [Point(11.5, 48.1)],
-            'station_label': ['Marienplatz']
+            'geometry': [Point(11.5, 48.1), Point(11.6, 48.2)],
+            'station_label': ['Marienplatz', 'Hauptbahnhof']
         }
         points_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
 
-        result = create_stations_csv(points_gdf, "TEST")
+        result = create_stations_csv(points_gdf, "SUBWAY")
 
-        assert result.iloc[0]['name'] == 'Marienplatz'
+        # Should use generic names, not the station labels
+        assert result.iloc[0]['name'] == 'SUBWAY Station'
+        assert result.iloc[1]['name'] == 'SUBWAY Station'
+
+    def test_handles_empty_station_labels_gracefully(self):
+        """Should provide meaningful names when station_label is empty."""
+        data = {
+            'geometry': [Point(11.5, 48.1), Point(11.6, 48.2)],
+            'station_label': ['Marienplatz', '']  # One empty label
+        }
+        points_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        result = create_stations_csv(points_gdf, "COMMUTER_RAIL")
+
+        # Both should use generic names
+        assert result.iloc[0]['name'] == 'COMMUTER_RAIL Station'
+        assert result.iloc[1]['name'] == 'COMMUTER_RAIL Station'
+
+    def test_includes_description_with_station_names(self):
+        """Should include Description field with actual station names."""
+        data = {
+            'geometry': [Point(11.5, 48.1), Point(11.6, 48.2)],
+            'station_label': ['Marienplatz', '']  # One with name, one empty
+        }
+        points_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        result = create_stations_csv(points_gdf, "SUBWAY_LIGHTRAIL")
+
+        # Should include Description with station names
+        assert result.iloc[0]['Description'] == 'Marienplatz'
+        assert result.iloc[1]['Description'] == 'Unknown Subway Station'  # Rail-type specific fallback
+
+
+class TestCreateSimpleKml:
+    """Test creation of simplified KML files with Google My Maps compatible attributes."""
+
+    def test_creates_ultra_simple_kml_without_schema(self):
+        """Should create ultra-simple KML without schema for maximum Google My Maps compatibility."""
+        data = {
+            'geometry': [Point(11.5, 48.1), Point(11.6, 48.2)],
+            'station_label': ['Marienplatz', 'Hauptbahnhof']
+        }
+        points_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_file = Path(temp_dir) / "test.kml"
+            create_simple_kml(points_gdf, "Test Stations", output_file)
+
+            content = output_file.read_text(encoding='utf-8')
+
+            # Should be ultra-simple without schema or extended data
+            assert '<Schema' not in content
+            assert '<ExtendedData' not in content
+            assert '<SimpleField' not in content
+            assert '<Folder>' not in content
+
+            # Should have basic KML structure
+            assert '<?xml version="1.0" encoding="UTF-8"?>' in content
+            assert '<kml xmlns="http://www.opengis.net/kml/2.2">' in content
+            assert '<Document>' in content
+            assert '<name>Test Stations</name>' in content
+            assert '<Placemark>' in content
+            assert '<name>Marienplatz</name>' in content
+            assert '<Point>' in content
+            assert '<coordinates>11.5,48.1,0</coordinates>' in content
 
 
 class TestCreateLinesCsv:
     """Test creation of lines CSV with WKT geometry and readable names."""
 
-    def test_creates_csv_with_wkt_column(self):
-        """Should create DataFrame with WKT geometry column."""
+    def test_creates_csv_with_wkt_and_description_columns(self):
+        """Should create DataFrame with WKT geometry and Description columns."""
         data = {
             'geometry': [LineString([(11.5, 48.1), (11.6, 48.2)])],
             'dbg_lines': 'U5'
@@ -177,8 +267,73 @@ class TestCreateLinesCsv:
 
         assert 'WKT' in result.columns
         assert 'name' in result.columns
+        assert 'Description' in result.columns  # Should have Description instead of dbg_lines
+        assert 'dbg_lines' not in result.columns  # Should not have dbg_lines
         assert result.iloc[0]['WKT'].startswith('LINESTRING')
         assert result.iloc[0]['name'] == 'U5'
+        assert result.iloc[0]['Description'] == 'U5'  # Description should match the line name
+
+    def test_splits_multi_line_entries_into_separate_rows(self):
+        """Should split lines with multiple values into separate entries."""
+        data = {
+            'geometry': [LineString([(11.5, 48.1), (11.6, 48.2)])],
+            'dbg_lines': 'S4,S20,S3'
+        }
+        lines_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        result = create_lines_csv(lines_gdf)
+
+        # Should create 3 separate entries for S4, S20, S3
+        assert len(result) == 3
+        expected_names = ['S4', 'S20', 'S3']
+        actual_names = result['name'].tolist()
+        assert actual_names == expected_names
+
+        # All should have the same WKT geometry
+        assert all(wkt == result.iloc[0]['WKT'] for wkt in result['WKT'])
+
+    def test_handles_mixed_single_and_multi_line_entries(self):
+        """Should handle mix of single lines and multi-line entries."""
+        data = {
+            'geometry': [
+                LineString([(11.5, 48.1), (11.6, 48.2)]),
+                LineString([(11.7, 48.3), (11.8, 48.4)]),
+            ],
+            'dbg_lines': ['U5', 'S1,S6,S8']
+        }
+        lines_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        result = create_lines_csv(lines_gdf)
+
+        # Should create 4 total entries: U5, S1, S6, S8
+        assert len(result) == 4
+        expected_names = ['U5', 'S1', 'S6', 'S8']
+        actual_names = result['name'].tolist()
+        assert actual_names == expected_names
+
+    def test_preserves_geometry_for_each_split_line(self):
+        """Should preserve original geometry for each split line entry."""
+        data = {
+            'geometry': [LineString([(11.5, 48.1), (11.6, 48.2)])],
+            'dbg_lines': 'U4,U5',
+            'other_field': 'test_value'
+        }
+        lines_gdf = gpd.GeoDataFrame(data, crs='EPSG:4326')
+
+        result = create_lines_csv(lines_gdf)
+
+        # Should create 2 entries
+        assert len(result) == 2
+        assert result.iloc[0]['name'] == 'U4'
+        assert result.iloc[1]['name'] == 'U5'
+
+        # Both should have the same WKT geometry
+        assert result.iloc[0]['WKT'] == result.iloc[1]['WKT']
+
+        # Should preserve other fields if they exist
+        if 'other_field' in result.columns:
+            assert result.iloc[0]['other_field'] == 'test_value'
+            assert result.iloc[1]['other_field'] == 'test_value'
 
 
 class TestIntegrationWithRealData:
