@@ -9,7 +9,7 @@
     "geopandas==1.1.1",
     "httpx==0.28.1",
     "structlog>=25.4.0",
-    "pandas==2.3.2"
+    "pandas==2.3.2",
   ]
 
 [dependency-groups]
