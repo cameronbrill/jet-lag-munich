@@ -181,6 +181,7 @@ dependencies = [
     { name = "gdal" },
     { name = "geopandas" },
     { name = "httpx" },
+    { name = "pandas" },
     { name = "structlog" },
 ]
 
@@ -202,6 +203,7 @@ requires-dist = [
     { name = "gdal", specifier = "==3.4.1" },
     { name = "geopandas", specifier = "==1.1.1" },
     { name = "httpx", specifier = "==0.28.1" },
+    { name = "pandas", specifier = "==2.3.2" },
     { name = "structlog", specifier = ">=25.4.0" },
 ]
 
