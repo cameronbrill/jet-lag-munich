@@ -5,10 +5,10 @@ runs:
   using: "composite"
   steps:
     - name: Install GDAL system dependencies
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gdal-bin libgdal-dev
+      uses: awalsh128/cache-apt-pkgs-action@2c09a5e66da6c8016428a2172bd76e5e4f14bb17 # v1.5.3
+      with:
+        packages: gdal-bin=3.4.1 libgdal-dev=3.4.1
+        version: 1.0
 
     - name: Install python and uv
       uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3
