@@ -29,14 +29,6 @@ uv sync --dev
 echo "✅ Project setup complete!"
 """
 
-[tasks."format:ruff"]
-  description = "Format code with ruff"
-  run         = "uv run ruff format ."
-
-[tasks."format:ssort"]
-  description = "Format code with ssort"
-  run         = "uv run ssort ."
-
 [tasks.format]
   run = "dprint fmt"
 
@@ -74,21 +66,21 @@ echo "✅ Project setup complete!"
 
 [tasks.test]
   description = "Run tests with pytest"
-  run         = "uv run pytest -q"
+  run         = "uv run pytest"
 
-[tasks.test-verbose]
+[tasks."test:verbose"]
   description = "Run tests with verbose output"
   run         = "uv run pytest -vv"
 
-[tasks.test-cov]
+[tasks."test:cov"]
   description = "Run tests with coverage"
   run         = "uv run pytest --cov=core --cov=apps --cov=storage --cov-report=term-missing"
 
-[tasks.test-unit]
+[tasks."test:unit"]
   description = "Run unit tests only"
   run         = "uv run pytest -m unit"
 
-[tasks.test-integration]
+[tasks."test:integration"]
   description = "Run integration tests only"
   run         = "uv run pytest -m integration"
 
@@ -110,6 +102,7 @@ rm -rf htmlcov/
 rm -rf .mypy_cache/
 find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 find . -type f -name "*.pyc" -delete
+uv clean
 echo "✅ Cleaned project artifacts"
 """
 
@@ -118,4 +111,4 @@ echo "✅ Cleaned project artifacts"
   run         = "uv build"
 
 [tasks.cli]
-  run = "uv run trader-cli"
+  run = "uv run cli"

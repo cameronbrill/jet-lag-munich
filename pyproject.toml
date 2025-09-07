@@ -36,7 +36,7 @@
 
 [tool.pytest.ini_options]
   minversion = "8.0"
-  testpaths = ["tests/unit", "tests/integration"]
+  testpaths = ["tests/"]
   pythonpath = ["."]
   addopts = ["-ra", "--strict-markers", "--strict-config", "--showlocals", "-q"]
   markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]

@@ -6,6 +6,12 @@ exclude = ["**/node_modules/**/*.toml", "**/.venv/**/*.toml"]
   indent_entries = true
 
 [[rule]]
+  include = ["**/ty.toml", "**/.toolchain/python/ty/**/*.toml"]
+
+  [rule.schema]
+    path = "https://raw.githubusercontent.com/astral-sh/ruff/refs/heads/main/ty.schema.json"
+
+[[rule]]
   include = ["**/ruff.toml", "**/.toolchain/python/ruff/**/*.toml"]
 
 
