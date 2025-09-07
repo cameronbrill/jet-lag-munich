@@ -1,8 +1,121 @@
-[tools]
-"npm:@infisical/cli" = "0.41.99"
-pnpm = "10.15.1"
-python = "3.13"
-uv = "latest"
 
-[tasks]
-start = "infisical run -- uv run main.py"
+[settings]
+  experimental = true
+  lockfile     = true
+  auto_install = false
+
+[tools]
+  "npm:@infisical/cli" = "0.41.99"
+  dprint               = "0.50.1"
+  "cargo:taplo-cli"    = "0.10.0"
+  python               = "3.13"
+  uv                   = "0.8.15"
+
+[env]
+  # Project environment variables
+  PYTHONPATH   = "."
+  PROJECT_NAME = "crypto-algo-trader"
+  ENV          = "development"
+
+  # Tool configurations
+  RUFF_CACHE_DIR   = ".ruff_cache"
+  PYTEST_CACHE_DIR = ".pytest_cache"
+  TY_CONFIG_FILE   = "{{config_root}}/.toolchain/python/ty/base.toml"
+
+[tasks.setup]
+  description = "Initial project setup"
+  run = """
+uv sync --dev
+echo "✅ Project setup complete!"
+"""
+
+[tasks."format:ruff"]
+  description = "Format code with ruff"
+  run         = "uv run ruff format ."
+
+[tasks."format:ssort"]
+  description = "Format code with ssort"
+  run         = "uv run ssort ."
+
+[tasks.format]
+  run = "dprint fmt"
+
+[tasks."format:ci"]
+  run = "dprint check"
+
+[tasks."lint:ruff"]
+  description = "Lint code with ruff"
+  run         = "uv run ruff check ."
+
+[tasks."lint:taplo"]
+  description = "Lint code with taplo"
+  run         = "taplo lint --no-schema"
+
+[tasks.lint]
+  depends = ["lint:ruff", "lint:taplo"]
+
+[tasks."lint:ci"]
+  depends = ["lint:ruff --output-format=github", "lint:taplo"]
+
+[tasks.lint-fix]
+  description = "Lint and auto-fix code with ruff"
+  run         = "uv run ruff check --fix ."
+
+[tasks."typecheck:pyright"]
+  description = "Type check with pyright"
+  run         = "uv run pyright"
+
+[tasks."typecheck:ty"]
+  description = "Type check with ty"
+  run         = "uv run ty check"
+
+[tasks.typecheck]
+  depends = ["typecheck:*"]
+
+[tasks.test]
+  description = "Run tests with pytest"
+  run         = "uv run pytest -q"
+
+[tasks.test-verbose]
+  description = "Run tests with verbose output"
+  run         = "uv run pytest -vv"
+
+[tasks.test-cov]
+  description = "Run tests with coverage"
+  run         = "uv run pytest --cov=core --cov=apps --cov=storage --cov-report=term-missing"
+
+[tasks.test-unit]
+  description = "Run unit tests only"
+  run         = "uv run pytest -m unit"
+
+[tasks.test-integration]
+  description = "Run integration tests only"
+  run         = "uv run pytest -m integration"
+
+[tasks.check]
+  description = "Run all checks (format, lint, typecheck, test)"
+  depends     = ["format", "typecheck", "lint", "test"]
+  wait_for    = ["format"]
+
+[tasks.clean]
+  description = "Clean project artifacts"
+  run = """
+rm -rf build/
+rm -rf dist/
+rm -rf *.egg-info
+rm -rf .ruff_cache/
+rm -rf .pytest_cache/
+rm -rf .coverage
+rm -rf htmlcov/
+rm -rf .mypy_cache/
+find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name "*.pyc" -delete
+echo "✅ Cleaned project artifacts"
+"""
+
+[tasks.build]
+  description = "Build distribution packages"
+  run         = "uv build"
+
+[tasks.cli]
+  run = "uv run trader-cli"

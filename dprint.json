@@ -1,0 +1,38 @@
+{
+  "malva": {
+    "blockSelectorLinebreak": "always"
+  },
+  "exec": {
+    "cwd": "${configDir}",
+    "commands": [
+      {
+        "command": "taplo fmt --stdin-filepath {{file_path}} -",
+        "exts": [
+          "toml"
+        ]
+      },
+      {
+        "command": "scripts/dprint-python-wrapper.sh {{file_path}}",
+        "stdin": false,
+        "exts": [
+          "py"
+        ]
+      }
+    ]
+  },
+  "excludes": [
+    "**/node_modules",
+    "**/*-lock.json",
+    "**/.venv"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.95.10.wasm",
+    "https://plugins.dprint.dev/json-0.20.0.wasm",
+    "https://plugins.dprint.dev/markdown-0.19.0.wasm",
+    "https://plugins.dprint.dev/exec-0.5.0.json@8d9972eee71fa1590e04873540421f3eda7674d0f1aae3d7c788615e7b7413d0",
+    "https://plugins.dprint.dev/dockerfile-0.3.3.wasm",
+    "https://plugins.dprint.dev/g-plane/malva-v0.14.2.wasm",
+    "https://plugins.dprint.dev/g-plane/markup_fmt-v0.23.2.wasm",
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.1.wasm"
+  ]
+}

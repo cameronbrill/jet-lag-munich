@@ -1,0 +1,318 @@
+# Ruff Base Configuration
+# ========================
+# https://docs.astral.sh/ruff/configuration/
+#
+# This base configuration defines our Python linting and formatting standards.
+# We explicitly document each rule selection to facilitate team discussions
+# about code quality standards.
+
+# Core Settings
+# =============
+
+# Target the latest Python version we support across all projects
+target-version = "py312"
+
+# 120 characters is a reasonable limit for modern displays while still
+# encouraging concise code. This aligns with many Python projects.
+line-length = 120
+
+# Automatically fix issues when safe to do so. This reduces manual work
+# while maintaining code quality.
+fix = true
+
+# Linting Rules
+# =============
+[lint]
+
+  # We explicitly select rule sets rather than using "ALL" to:
+  # 1. Avoid unexpected breaking changes when new rules are added
+  # 2. Document our reasoning for each rule set
+  # 3. Allow gradual adoption of new rule sets
+  select = [
+    # Core Python Errors
+    # ------------------
+    "F", # Pyflakes - Detects various errors (undefined names, unused imports, etc.)
+    # Essential for catching real bugs.
+
+    "E", # pycodestyle errors - Syntax and indentation errors that would
+    # prevent code from running. Non-negotiable.
+
+    "W", # pycodestyle warnings - Potential issues and style violations.
+    # Helps maintain consistency.
+
+    # Import Management
+    # ----------------
+    "I", # isort - Consistent import ordering improves readability and reduces
+    # merge conflicts. Well-established Python convention.
+
+    "TID", # flake8-tidy-imports - Prevents relative imports and banned imports.
+    # Helps maintain clean module boundaries.
+
+    # Import style preferences
+    "TID252", # Relative imports are banned.
+    # We allow relative imports within packages for cohesion using extra ruff.toml files.
+
+    # Code Modernization
+    # -----------------
+    "UP", # pyupgrade - Automatically modernizes Python syntax for our target version.
+    # Keeps codebase modern and consistent.
+
+    "FA", # flake8-future-annotations - Ensures proper use of future annotations.
+    # Important for forward compatibility.
+
+    # Type Annotation Rules
+    # --------------------
+    "ANN", # flake8-annotations - Enforces type annotations.
+    # Critical for maintainability and IDE support.
+
+    "TCH", # flake8-type-checking - Moves type-only imports into TYPE_CHECKING blocks.
+    # Reduces runtime overhead and circular dependencies.
+
+    # Code Quality
+    # -----------
+    "B", # flake8-bugbear - Detects design problems and likely bugs.
+    # Goes beyond Pyflakes to catch subtle issues.
+
+    "C4", # flake8-comprehensions - Improves list/dict/set comprehensions.
+    # Better performance and readability.
+
+    "SIM", # flake8-simplify - Suggests simpler equivalent code.
+    # Improves readability and reduces complexity.
+
+    "RET", # flake8-return - Improves return statement consistency.
+    # Cleaner function exits.
+
+    "ARG", # flake8-unused-arguments - Detects unused function arguments.
+    # Helps identify dead code and refactoring opportunities.
+
+    "PTH", # flake8-use-pathlib - Encourages pathlib over os.path.
+    # Modern, cross-platform path handling.
+
+    "ERA", # eradicate - Removes commented-out code.
+    # Version control preserves history; comments should explain, not store code.
+
+    "PGH", # pygrep-hooks - Various code quality checks.
+    # Catches common mistakes.
+
+    # Performance
+    # ----------
+    "PERF", # Perflint - Performance-related linting.
+    # Identifies inefficient patterns.
+
+    # Error Handling
+    # -------------
+    "BLE", # flake8-blind-except - Prevents blind except clauses.
+    # Ensures specific error handling.
+
+    "FBT", # flake8-boolean-trap - Prevents boolean positional arguments.
+    # Improves API clarity.
+
+    "RSE", # flake8-raise - Improves exception raising.
+    # Cleaner error handling patterns.
+
+    "TRY", # tryceratops - Exception handling best practices.
+    # More maintainable error handling.
+
+    # Security
+    # --------
+    "S", # flake8-bandit - Security issue detection.
+    # Identifies potential security vulnerabilities.
+
+    # Naming Conventions
+    # -----------------
+    "N", # pep8-naming - PEP 8 naming conventions.
+    # Consistent, Pythonic naming.
+
+    # Async Best Practices
+    # -------------------
+    "ASYNC", # flake8-async - Async/await best practices.
+    # Prevents common async pitfalls.
+
+    # Ruff-Specific Rules
+    # ------------------
+    "RUF", # Ruff-specific rules - Additional checks not in other tools.
+    # Leverages Ruff's unique capabilities.
+
+    # String Formatting
+    # ----------------
+    "ISC", # flake8-implicit-str-concat - Detects implicit string concatenation.
+    # Prevents subtle bugs.
+
+    "FLY", # flynt - Converts string formatting to f-strings.
+    # Modern, efficient string formatting.
+
+    # Code Complexity
+    # --------------
+    "C90", # mccabe - Cyclomatic complexity checking.
+    # Identifies overly complex functions.
+
+    # Complexity that's sometimes justified
+    "C901", # Function is too complex.
+    # Sometimes complexity is inherent to the problem domain.
+    # Address on case-by-case basis.
+
+
+    # Pytest
+    # ------
+    "PT", # flake8-pytest-style - Pytest best practices.
+    # Consistent test structure.
+  ]
+
+  # Rules to Ignore
+  # --------------
+  # We explicitly ignore certain rules where they conflict with our practices
+  # or provide minimal value.
+  ignore = [
+    # Allow non-lowercase arguments in decorators
+    "B008", # Do not perform function call in argument defaults.
+    # Sometimes useful for decorators and configuration.
+
+    # Exception handling style
+    "TRY003", # Avoid specifying long messages outside the exception class.
+    # Sometimes inline messages are more maintainable.
+
+    # Boolean trap exceptions for clear APIs
+    "FBT001", # Boolean positional arg in function definition.
+    # Sometimes boolean args are clear from context (e.g., set_visible(True)).
+
+    "FBT002", # Boolean default value in function definition.
+    # Default booleans are often appropriate.
+
+    # Performance rules that can hurt readability
+    "PERF401", # Use list comprehension instead of loop with append.
+    # Sometimes loops are clearer, especially with complex logic.
+
+    # Security rules that are too strict
+    "S603", # subprocess without shell=True is possibly insecure.
+    # We carefully validate inputs when needed.
+
+    # Simplify rules that can reduce clarity
+    "SIM108", # Use ternary operator instead of if-else.
+    # if-else can be clearer for complex conditions.
+  ]
+
+# Format Settings
+# ==============
+[format]
+  # Use double quotes for consistency with JSON and most Python code
+  quote-style = "double"
+
+  # Spaces provide better readability than tabs
+  indent-style = "space"
+
+  # Allow trailing commas to be automatically managed
+  skip-magic-trailing-comma = false
+
+  # Let Git handle line endings for cross-platform compatibility
+  line-ending = "auto"
+
+  # Docstring formatting following PEP 257
+  docstring-code-format      = true
+  docstring-code-line-length = 80
+
+  # Import Sorting Configuration
+  # ===========================
+  [lint.isort]
+    # Group imports consistently
+    section-order = [
+      "future",
+      "standard-library",
+      "third-party",
+      "first-party",
+      "local-folder",
+    ]
+
+    # Our first-party packages (extend in project-specific config)
+    known-first-party = []
+
+    # Combine imports from the same module
+    combine-as-imports = true
+
+    # Sort imports within their sections
+    force-sort-within-sections = true
+
+  # McCabe Complexity
+  # ================
+  [lint.mccabe]
+    # Maximum complexity before warning
+    # 10 is a reasonable default, but can be overridden for specific functions
+    max-complexity = 10
+
+  # Pylint Settings
+  # ==============
+  [lint.pylint]
+    # Allow TODO/FIXME comments with proper tracking
+    allow-dunder-method-names = ["__post_init__"]
+    max-args                  = 7                 # Reasonable limit, can be exceeded with good reason
+    max-returns               = 6                 # Multiple returns can be clearer than complex logic
+    max-branches              = 12                # Reasonable for complex business logic
+
+  # Type Checking Settings
+  # =====================
+  [lint.flake8-type-checking]
+    # Move type-only imports to TYPE_CHECKING block for better performance
+    runtime-evaluated-base-classes = [
+      "pydantic.BaseModel",
+      "sqlalchemy.orm.DeclarativeBase",
+    ]
+    runtime-evaluated-decorators = ["attrs.define", "attrs.frozen"]
+
+  # Pytest Configuration
+  # ===================
+  [lint.flake8-pytest-style]
+    # Prefer explicit fixture names for clarity
+    fixture-parentheses = true
+    mark-parentheses    = true
+
+  # Quotes Configuration
+  # ===================
+  [lint.flake8-quotes]
+    inline-quotes    = "double"
+    multiline-quotes = "double"
+    docstring-quotes = "double"
+
+  # Annotations Configuration
+  # ========================
+  [lint.flake8-annotations]
+    # Allow some flexibility for obvious types
+    allow-star-arg-any      = true
+    mypy-init-return        = true
+    suppress-dummy-args     = true
+    suppress-none-returning = false
+
+  # Per-File Ignores
+  # ===============
+  # Different rules for different contexts
+  [lint.per-file-ignores]
+    # Test files have different requirements
+    "test_*.py" = [
+      "ANN",     # Type annotations less critical in tests
+      "ARG",     # Unused arguments common in fixtures
+      "S101",    # Assert is the foundation of testing
+      "PLR2004", # Magic values are fine in tests
+      "PLR0913", # Tests may need many arguments
+    ]
+
+    "**/tests/**/*.py" = [
+      "ANN",     # Type annotations less critical in tests
+      "ARG",     # Unused arguments common in fixtures
+      "S101",    # Assert is the foundation of testing
+      "PLR2004", # Magic values are fine in tests
+      "PLR0913", # Tests may need many arguments
+    ]
+
+    # Scripts are often simpler
+    "scripts/**/*.py" = [
+      "ANN",  # Type annotations optional for scripts
+      "T201", # Print is fine in scripts
+    ]
+
+    # Migrations have generated code
+    "**/migrations/*.py" = [
+      "E501", # Line length not enforced
+      "ERA",  # May contain commented code
+    ]
+
+    # Configuration files
+    "conf.py"  = ["INP001", "ERA"]
+    "setup.py" = ["ERA"]

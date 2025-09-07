@@ -1,0 +1,273 @@
+// Rule Configuration
+// ==================
+// https://microsoft.github.io/pyright/#/configuration?id=type-check-rule-overrides
+{
+  // Rather than using a predefined "typeCheckingMode" preset…
+  "typeCheckingMode": "off",
+  // …we configure each rule individually.
+  //
+  // This enables us to document why we've chosen specific rules and
+  // facilitates discussions when considering new rules.
+
+  // Detects type inconsistencies, unsupported operations, parameter mismatches, etc.
+  "reportGeneralTypeIssues": "error",
+
+  // Setter type mismatches can provide better devex.
+  //
+  // For instance, allowing values that can be converted to the target type.
+  "reportPropertyTypeMismatch": "none",
+
+  // Validates type checking for function properties.
+  "reportFunctionMemberAccess": "error",
+
+  // Ensures all dependencies have proper type definitions.
+  "reportMissingImports": "error",
+
+  // Identifies situations with type stubs but missing implementations.
+  "reportMissingModuleSource": "error",
+
+  // Flags incorrect type syntax usage.
+  "reportInvalidTypeForm": "error",
+
+  // Enforces type stub availability for all dependencies.
+  //
+  // Set as warning since it's only visible in IDE environments.
+  "reportMissingTypeStubs": "warning",
+
+  // Import cycles create significant complexity issues.
+  "reportImportCycles": "error",
+
+  // Remove unused imports!
+  // Turned off since Ruff handles this already.
+  "reportUnusedImport": "none",
+
+  // Remove it!
+  "reportUnusedClass": "error",
+
+  // Remove unused private functions!
+  "reportUnusedFunction": "error",
+
+  // Remove unused variables!
+  "reportUnusedVariable": "error",
+
+  // Remove duplicate imports!
+  "reportDuplicateImport": "error",
+
+  // Very likely to create unexpected conflicts during library updates.
+  "reportWildcardImportFromLibrary": "error",
+
+  // Avoid misusing abstract classes!
+  "reportAbstractUsage": "error",
+
+  // Validates function argument types.
+  "reportArgumentType": "error",
+
+  // Ensures proper usage of assert_type.
+  "reportAssertTypeFailure": "error",
+
+  // Validates assignment type compatibility.
+  "reportAssignmentType": "error",
+
+  // Validates attribute access operations.
+  "reportAttributeAccessIssue": "error",
+
+  // Validates arguments and expressions in function calls.
+  "reportCallIssue": "error",
+
+  // Ensures function overloads maintain consistency.
+  "reportInconsistentOverload": "error",
+
+  // Validates index operation types.
+  "reportIndexIssue": "error",
+
+  // Confirms correct usage of type arguments.
+  "reportInvalidTypeArguments": "error",
+
+  // Requires actual implementation for overloaded functions.
+  "reportNoOverloadImplementation": "error",
+
+  // Validates operator usage.
+  "reportOperatorIssue": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalSubscript": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalMemberAccess": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalCall": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalIterable": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalContextManager": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportOptionalOperand": "error",
+
+  // Typically an error; sometimes caused by confusing decorator patterns.
+  "reportRedeclaration": "error",
+
+  // Validates function return value types.
+  "reportReturnType": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportTypedDictNotRequiredAccess": "error",
+
+  // Ensures proper type checking of function decorators.
+  "reportUntypedFunctionDecorator": "error",
+
+  // Ensures proper type checking of class decorators.
+  "reportUntypedClassDecorator": "error",
+
+  // Ensures proper type checking of class inheritance.
+  "reportUntypedBaseClass": "error",
+
+  // Prefer NamedTuple over namedtuple.
+  "reportUntypedNamedTuple": "error",
+
+  // Enforces __private and _protected naming conventions.
+  "reportPrivateUsage": "error",
+
+  // Prefer type annotations over type comments.
+  "reportTypeCommentUsage": "error",
+
+  // Flags access to module internals.
+  "reportPrivateImportUsage": "error",
+
+  // Constants should remain unchanged.
+  "reportConstantRedefinition": "error",
+
+  // Don't use deprecated features.
+  "reportDeprecated": "error",
+
+  // Ensures method overrides maintain compatibility.
+  "reportIncompatibleMethodOverride": "error",
+
+  // Ensures variable overrides maintain compatibility.
+  "reportIncompatibleVariableOverride": "error",
+
+  // Ensures __new__ and __init__ type consistency.
+  "reportInconsistentConstructor": "error",
+
+  // Ensures function overload type consistency.
+  "reportOverlappingOverload": "error",
+
+  // Prevents potential null pointer exceptions.
+  "reportPossiblyUnboundVariable": "error",
+
+  // Ensures correct super() usage in class lifecycle methods.
+  //
+  // Would prefer to enable this, but it produces false positives for classes
+  // without superclasses.
+  "reportMissingSuperCall": "none",
+
+  // Prevents potential null pointer exceptions.
+  "reportUninitializedInstanceVariable": "error",
+
+  // Ensures correct string escape sequence usage.
+  "reportInvalidStringEscapeSequence": "error",
+
+  // Ensures comprehensive type coverage.
+  "reportUnknownParameterType": "error",
+
+  // Ensures comprehensive type coverage.
+  "reportUnknownArgumentType": "error",
+
+  // Ensures comprehensive type coverage.
+  "reportUnknownLambdaType": "error",
+
+  // Ensures comprehensive type coverage.
+  "reportUnknownVariableType": "error",
+
+  // Ensures comprehensive type coverage.
+  "reportUnknownMemberType": "error",
+
+  // Requires type annotations for all function parameters.
+  "reportMissingParameterType": "error",
+
+  // Requires explicit or inferred types for generic classes.
+  "reportMissingTypeArgument": "error",
+
+  // Ensures proper TypeVar usage.
+  "reportInvalidTypeVarUse": "error",
+
+  // Overly restrictive; sometimes inefficient patterns are acceptable
+  // for better user experience.
+  "reportCallInDefaultInitializer": "none",
+
+  // Prevents expressions with predetermined outcomes.
+  "reportUnnecessaryIsInstance": "error",
+
+  // Prevents expressions with predetermined outcomes.
+  "reportUnnecessaryCast": "error",
+
+  // Prevents expressions with predetermined outcomes.
+  "reportUnnecessaryComparison": "error",
+
+  // Prevents expressions with predetermined outcomes.
+  "reportUnnecessaryContains": "error",
+
+  // Prevents expressions with predetermined outcomes.
+  "reportAssertAlwaysTrue": "error",
+
+  // Maintains consistency in self and cls parameter naming.
+  "reportSelfClsParameterName": "error",
+
+  // Useful for multiline string handling.
+  "reportImplicitStringConcatenation": "none",
+
+  // Prevents potential null pointer exceptions and missing types.
+  "reportUndefinedVariable": "error",
+
+  // Prevents potential null pointer exceptions and unclear code.
+  "reportUnboundVariable": "error",
+
+  // Ensures containers receive hashable values when required.
+  "reportUnhashable": "error",
+
+  // Remove invalid type stub statements!
+  "reportInvalidStubStatement": "error",
+
+  // Validates stubs for __getattr__ usage.
+  "reportIncompleteStub": "error",
+
+  // Prevents complex __all__ usage that confuses pyright.
+  "reportUnsupportedDunderAll": "error",
+
+  // Sometimes functions are called purely for side effects.
+  "reportUnusedCallResult": "none",
+
+  // Sometimes coroutines are called purely for side effects.
+  "reportUnusedCoroutine": "none",
+
+  // Prevents unreachable code.
+  "reportUnusedExcept": "error",
+
+  // Prevents unnecessary expressions.
+  "reportUnusedExpression": "error",
+
+  // Ensures pyright overrides actually have an impact
+  "reportUnnecessaryTypeIgnoreComment": "error",
+
+  // Requires match statements to be exhaustive.
+  "reportMatchNotExhaustive": "error",
+
+  // Requires explicit override declarations.
+  "reportImplicitOverride": "error",
+
+  // Disabled due to many false positives. Ruff rule A005 handles
+  // this instead.
+  "reportShadowedImports": "none",
+
+  // Enforces pyright: ignore comments for consistency.
+  "enableTypeIgnoreComments": false,
+
+  // Enables smarter type inference for dictionaries, lists, and sets
+  // when type hints are missing.
+  "strictDictionaryInference": true,
+  "strictListInference": true,
+  "strictSetInference": true
+}

@@ -1,0 +1,29 @@
+name: Setup Python
+description: Sets up Python and dependencies using mise and uv
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install python and uv
+      uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3
+      with:
+        install: true
+        cache: true
+        install_args: "python uv"
+
+    - name: Restore uv cache
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+      with:
+        path: /tmp/.uv-cache
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          uv-${{ runner.os }}-
+
+    - name: Install dependencies
+      env:
+        # Configure a constant location for the uv cache
+        UV_CACHE_DIR: /tmp/.uv-cache
+      shell: bash
+      run: |
+        uv sync --group dev --locked

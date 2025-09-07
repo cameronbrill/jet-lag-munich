@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices"
+  ],
+  // Require review from myself for major version upgrades, otherwise automerge if required checks are passing
+  "assignees": ["cameronbrill"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      // We only want to automerge when we have branch protections enabled, but we can't do that
+      // when the repository is private so we disable automerge in the meantime
+      "automerge": false
+    }
+  ],
+  "automergeStrategy": "squash",
+  // Keep lockfiles up to date
+  "lockFileMaintenance": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.pyright",
+    "charliermarsh.ruff",
+    "tamasfe.even-better-toml",
+    "editorconfig.editorconfig",
+    "github.vscode-github-actions",
+    "mikoz.ssort",
+    "dprint.dprint",
+    "usernamehw.errorlens",
+    "ms-python.debugpy",
+    "astral-sh.ty"
+  ]
+}

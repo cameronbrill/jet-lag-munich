@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Install formatters
+        uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3
+        with:
+          install: true
+          cache: true
+          install_args: "\"cargo:taplo-cli\" dprint"
+
+      - name: Run formatters
+        run: |
+          mise format:ci
+
+  lint:
+    name: Lint
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Install linters
+        uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3
+        with:
+          install: true
+          cache: true
+          install_args: "\"cargo:taplo-cli\""
+
+      - name: Run linters
+        run: |
+          mise lint:ci --continue-on-error
+
+  type-check:
+    name: Type Check
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Run Fast Type Check
+        run: mise typecheck:ty
+
+      - name: Add .venv/bin to PATH
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Run Slow Type Check
+        uses: jakebailey/pyright-action@6cabc0f01c4994be48fd45cd9dbacdd6e1ee6e5e # v2
+        with:
+          version: PATH
+          project: ./pyrightconfig.json
+
+  test:
+    name: Test
+    runs-on: ubicloud-standard-2
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Run fast tests
+        if: ${{ github.event_name == 'pull_request'}}
+        run: |
+          uv run pytest -q --junit-xml=results/pytest-junit.xml -m "not slow"
+
+      - name: Create test summary
+        uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2
+        with:
+          show: "all"
+          paths: results/pytest-junit.xml
+          output: pytest-summary.md
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+
+      - name: Wrap test summary in details
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        run: |
+          echo "<details>" > pytest-summary-wrapped.md
+          echo "" >> pytest-summary-wrapped.md
+          echo "<summary>Fast Test Results</summary>" >> pytest-summary-wrapped.md
+          echo "" >> pytest-summary-wrapped.md
+          cat pytest-summary.md >> pytest-summary-wrapped.md
+          echo "" >> pytest-summary-wrapped.md
+          echo "</details>" >> pytest-summary-wrapped.md
+          mv pytest-summary-wrapped.md pytest-summary.md
+
+      - name: Update PR with fast test results
+        uses: ./.github/actions/find-update-or-create-comment
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "Test Results"
+          comment-author: "github-actions[bot]"
+          body-path: pytest-summary.md
+          edit-mode: replace
+
+      - name: Run slow tests
+        run: |
+          uv run pytest -q --junit-xml=results/pytest-slow-junit.xml -m "slow"
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+
+      - name: Create test summary
+        uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2
+        with:
+          show: "all"
+          paths: results/pytest-slow-junit.xml
+          output: pytest-slow-summary.md
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+
+      - name: Wrap slow test summary in details
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        run: |
+          echo "<details>" > pytest-slow-summary-wrapped.md
+          echo "" >> pytest-slow-summary-wrapped.md
+          echo "<summary>Slow Test Results</summary>" >> pytest-slow-summary-wrapped.md
+          echo "" >> pytest-slow-summary-wrapped.md
+          cat pytest-slow-summary.md >> pytest-slow-summary-wrapped.md
+          echo "" >> pytest-slow-summary-wrapped.md
+          echo "</details>" >> pytest-slow-summary-wrapped.md
+          mv pytest-slow-summary-wrapped.md pytest-slow-summary.md
+
+      - name: Combine test summaries
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        run: |
+          echo "# Test Results" > combined-test-summary.md
+          echo "" >> combined-test-summary.md
+          cat pytest-summary.md >> combined-test-summary.md
+          echo "" >> combined-test-summary.md
+          cat pytest-slow-summary.md >> combined-test-summary.md
+
+      - name: Update PR with combined test results
+        uses: ./.github/actions/find-update-or-create-comment
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "Test Results"
+          comment-author: "github-actions[bot]"
+          body-path: combined-test-summary.md
+          edit-mode: replace
+
+      - name: Run tests with coverage
+        if: ${{ !cancelled() }}
+        run: |
+          uv run pytest --cov=core --cov-report=term-missing
+
+  build:
+    name: Build
+    runs-on: ubicloud-standard-2
+    needs: [lint, type-check, test]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Build package
+        run: |
+          uv build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dist
+          path: dist/

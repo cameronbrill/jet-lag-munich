@@ -1,0 +1,13 @@
+# Project-Specific Ruff Configuration
+# ====================================
+# Extends the base configuration from .toolchain/python/ruff/base.toml
+
+# Inherit all settings from our base configuration
+extend = "./.toolchain/python/ruff/base.toml"
+
+# Project-Specific Overrides
+# =========================
+
+[lint.isort]
+  # Define our first-party packages for this project
+  known-first-party = ["core"]

@@ -1,0 +1,46 @@
+{
+  // General Formatting
+  // ------------------
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "editor.defaultFormatter": "dprint.dprint",
+
+  // File Associations
+  // -----------------
+  "files.associations": {
+    "**/.toolchain/**/*.json": "jsonc",
+    "pyrightconfig.json": "jsonc",
+    "**/.toolchain/**/*.toml": "toml",
+    "renovate.json": "jsonc",
+    "dprint.json": "jsonc"
+  },
+
+  // JSON
+  // ----
+  "json.schemas": [
+    {
+      "fileMatch": [".toolchain/pyright/*.json"],
+      "url": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json"
+    },
+    {
+      "fileMatch": [".toolchain/typescript/**/*.json"],
+      "url": "http://json.schemastore.org/tsconfig.json"
+    }
+  ],
+
+  // TOML
+  // ----
+  "evenBetterToml.taplo.configFile.path": "./taplo.toml",
+  "evenBetterToml.taplo.bundled": false,
+
+  // Python
+  // ------
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestPath": ".venv/bin/pytest",
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "ty.diagnosticMode": "workspace"
+}

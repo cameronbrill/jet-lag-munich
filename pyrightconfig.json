@@ -1,0 +1,23 @@
+// Project-specific Pyright configuration
+// Extends the base configuration from .toolchain
+{
+  "extends": "./.toolchain/python/pyright/base.json",
+  // Project-specific overrides
+  "include": [
+    "core",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.venv",
+    ".git",
+    "dist",
+    "build"
+  ],
+  "pythonVersion": "3.13",
+  "pythonPlatform": "All",
+  // Ensure we're using the virtual environment
+  "venvPath": ".",
+  "venv": ".venv"
+}

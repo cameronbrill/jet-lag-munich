@@ -1,0 +1,248 @@
+# Ty Base Configuration
+# ======================
+# https://github.com/astral-sh/ruff/blob/main/crates/ty/docs/rules.md
+#
+# This base configuration defines our Python type checking standards using ty.
+# We explicitly configure each rule to document our rationale and facilitate
+# team discussions about type safety standards.
+
+[environment]
+  python-version  = "3.13"
+  python-platform = "all"
+  python          = "./.venv"
+
+[rules]
+  # Protocol classes with ambiguous interfaces can lead to unexpected type inference
+  # and unclear contracts. All protocol members should be explicitly declared to
+  # ensure clear, unambiguous interfaces that type checkers can reason about correctly.
+  ambiguous-protocol-member = "error"
+
+  # Static analysis tools like ty can't analyze type annotations that use byte-string notation.
+  # Using proper string annotations ensures compatibility with all type checkers.
+  byte-string-type-annotation = "error"
+
+  # Calling a non-callable object will raise a TypeError at runtime.
+  # This catches fundamental type errors that would cause immediate failures.
+  call-non-callable = "error"
+
+  # Function calls with conflicting argument forms have confusing semantics and often
+  # indicate logic errors. Such calls should be avoided for clarity.
+  conflicting-argument-forms = "error"
+
+  # Variables with conflicting type declarations likely indicate mistakes and could
+  # lead to incorrect type inference for dependent code.
+  conflicting-declarations = "error"
+
+  # Class definitions with metaclass conflicts raise TypeError at runtime.
+  # This prevents fundamental class creation errors.
+  conflicting-metaclass = "error"
+
+  # Class inheritance cycles are impossible to resolve and prevent proper
+  # method resolution order calculation.
+  cyclic-class-definition = "error"
+
+  # Using deprecated features is ill-advised and can be a maintenance smell.
+  deprecated = "error"
+
+  # Division by zero always raises ZeroDivisionError at runtime.
+  # If intentional, use explicit zero checks or exception handling.
+  division-by-zero = "error"
+
+  # Duplicate base classes in class definitions raise TypeError at runtime.
+  # This prevents basic class definition errors.
+  duplicate-base = "error"
+
+  # Dataclass definitions can only have one KW_ONLY marker per class.
+  # Multiple markers would cause dataclass creation to fail.
+  duplicate-kw-only = "error"
+
+  # Certain types of type annotations can't be analyzed by static analysis tools.
+  escape-character-in-forward-annotation       = "error"
+  fstring-type-annotation                      = "error"
+  implicit-concatenated-string-type-annotation = "error"
+
+  # Inconsistent method resolution order raises TypeError at runtime.
+  inconsistent-mro = "error"
+
+  # Out of bounds index access raises IndexError at runtime.
+  index-out-of-bounds = "error"
+
+  # Instance layout conflicts cause TypeError during class creation.
+  instance-layout-conflict = "error"
+
+  # Wrong argument types can cause runtime errors in function bodies.
+  invalid-argument-type = "error"
+
+  # Type mismatches in assignments weaken type system guarantees.
+  invalid-assignment = "error"
+
+  # Incorrect class/instance variable assignments break type system rules.
+  invalid-attribute-access = "error"
+
+  # Awaiting non-awaitable types raises TypeError at runtime.
+  invalid-await = "error"
+
+  # Class bases that aren't types cause TypeError during class creation.
+  invalid-base = "error"
+
+  # Using non-context-managers in with statements raises TypeError.
+  invalid-context-manager = "error"
+
+  # Post-hoc type declarations that conflict with inferred types break type system rules.
+  invalid-declaration = "error"
+
+  # Catching non-exception classes in except clauses raises TypeError.
+  invalid-exception-caught = "error"
+
+  # Invalid generic class definitions violate typing requirements.
+  invalid-generic-class = "error"
+
+  # Syntactically incorrect ignore comments are useless and likely mistakes.
+  invalid-ignore-comment = "error"
+
+  # Invalid dictionary/subscript keys raise KeyError at runtime.
+  invalid-key = "error"
+
+  # Legacy TypeVar definitions must follow specific naming and usage rules.
+  invalid-legacy-type-variable = "error"
+
+  # Invalid metaclass arguments cause TypeError during class creation.
+  invalid-metaclass = "error"
+
+  # Invalid NamedTuple definitions cause TypeError and break type inference.
+  invalid-named-tuple = "error"
+
+  # Invalid @overload usage prevents proper type checking and overload resolution.
+  invalid-overload = "error"
+
+  # Parameter defaults that don't match their type annotations break type system rules.
+  invalid-parameter-default = "error"
+
+  # Invalid protocol definitions cause TypeError and break structural typing.
+  invalid-protocol = "error"
+
+  # Raising non-exceptions or using invalid exception causes raises TypeError.
+  invalid-raise = "error"
+
+  # Return values that don't match function annotations break type contracts.
+  invalid-return-type = "error"
+
+  # Invalid super() arguments cause TypeError at runtime.
+  invalid-super-argument = "error"
+
+  # Invalid syntax in forward annotations breaks static analysis.
+  invalid-syntax-in-forward-annotation = "error"
+
+
+  # TODO TypeAliasType definitions must follow specific creation rules.
+  invalid-type-alias-type = "error"
+
+  # TYPE_CHECKING must be assigned False and annotated as bool-compatible.
+  invalid-type-checking-constant = "error"
+
+  # Invalid type expressions can't be understood by type checkers.
+  invalid-type-form = "error"
+
+  # Type guard calls need valid narrowing targets to be effective.
+  invalid-type-guard-call = "error"
+
+  # Type guard functions must accept at least one positional parameter.
+  invalid-type-guard-definition = "error"
+
+  # Constrained type variables must have at least two constraints.
+  invalid-type-variable-constraints = "error"
+
+  # Missing required function arguments raise TypeError at runtime.
+  missing-argument = "error"
+
+  # Missing required TypedDict keys can cause KeyError when accessed.
+  missing-typed-dict-key = "error"
+
+  # Calls that don't match any overload signature raise TypeError.
+  no-matching-overload = "error"
+
+  # Subscripting non-subscriptable objects raises TypeError at runtime.
+  non-subscriptable = "error"
+
+  # Iterating over non-iterable objects raises TypeError at runtime.
+  not-iterable = "error"
+
+  # Providing multiple values for the same parameter raises TypeError.
+  parameter-already-assigned = "error"
+
+  # Accessing possibly unbound attributes can raise AttributeError.
+  possibly-unbound-attribute = "error"
+
+  # Implicit calls to possibly unbound methods raise AttributeError.
+  possibly-unbound-implicit-call = "error"
+
+  # Importing possibly unbound symbols raises ModuleNotFoundError or ImportError.
+  possibly-unbound-import = "error"
+
+  # If we have a possibly unresolved reference, we might be forgetting an import or definition.
+  possibly-unresolved-reference = "error"
+
+  # Raw strings in type annotations can't be analyzed by static tools.
+  raw-string-type-annotation = "error"
+
+  # Redundant cast operations have no effect and can be removed to improve
+  # code clarity and performance.
+  redundant-cast = "error"
+
+  # Static assertions that fail indicate explicit type checking requirements aren't met.
+  static-assert-error = "error"
+
+  # Subclassing @final classes violates the final decorator contract.
+  subclass-of-final-class = "error"
+
+  # Passing too many positional arguments raises TypeError at runtime.
+  too-many-positional-arguments = "error"
+
+  # Failed type assertions indicate actual types don't match expected types.
+  type-assertion-failure = "error"
+
+  # Invalid super() calls without proper context raise RuntimeError.
+  unavailable-implicit-super-arguments = "error"
+
+  # Using reveal_type without importing it will raise a NameError at runtime.
+  # We don't want unresolved references in our codebase.
+  undefined-reveal = "error"
+
+  # Unknown keyword arguments in function calls raise TypeError.
+  unknown-argument = "error"
+
+  # ty: ignore[code] directives with unknown rule codes won't suppress any errors
+  # and are probably mistakes. This helps maintain clean ignore directives.
+  unknown-rule = "error"
+
+  # Accessing non-existent attributes raises AttributeError at runtime.
+  unresolved-attribute = "error"
+
+  # Variables declared as global without explicit bindings make static analysis
+  # difficult. This helps improve type inference quality and is more obvious to the developer.
+  unresolved-global = "error"
+
+  # Importing non-existent modules raises ModuleNotFoundError at runtime.
+  unresolved-import = "error"
+
+  # Using undefined variables raises NameError at runtime.
+  unresolved-reference = "error"
+
+  # Class bases that ty cannot analyze lead to inferior type checking.
+  # This warns about patterns that reduce type safety effectiveness.
+  #
+  # If we have an unsupported base, we are probably doing something overly
+  # complex or unintentional.
+  unsupported-base = "error"
+
+  # Objects with broken __bool__ implementation fail in boolean contexts.
+  unsupported-bool-conversion = "error"
+
+  # Using unsupported operators on objects raises TypeError at runtime.
+  unsupported-operator = "error"
+
+  # We want ignore comments to be used sparingly, and only when necessary.
+  unused-ignore-comment = "error"
+
+  # Slice step size of zero raises ValueError at runtime.
+  zero-stepsize-in-slice = "error"
