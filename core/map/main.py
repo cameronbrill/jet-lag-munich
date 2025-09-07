@@ -1,6 +1,7 @@
 from enum import Enum
 from pathlib import Path
 import re
+from typing import Callable
 
 import geopandas as gpd
 import httpx
@@ -96,8 +97,9 @@ def create_stations_csv(points_gdf: gpd.GeoDataFrame, endpoint_name: str) -> pd.
 
     if "station_label" in stations_df.columns:
         # Use station_label value directly, fallback to rail-type specific description
-        stations_df["Description"] = stations_df["station_label"].apply(
-            lambda x: str(x).strip() if pd.notna(x) and str(x).strip() != "" else fallback_description
+        station_label_application_func: Callable[[str], str] = lambda x: str(x).strip() if pd.notna(x) and str(x).strip() != "" else fallback_description
+        stations_df["Description"] = stations_df["station_label"].apply( # pyright: ignore[reportUnknownMemberType]
+            station_label_application_func
         )
     else:
         stations_df["Description"] = fallback_description
@@ -116,7 +118,7 @@ def split_multi_line_entries(lines_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     Returns:
         GeoDataFrame with each line as a separate row
     """
-    expanded_rows = []
+    expanded_rows: list[pd.Series] = []
 
     for _idx, row in lines_gdf.iterrows():
         # Extract all line names from dbg_lines or lines field
@@ -160,8 +162,8 @@ def create_lines_csv(lines_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     expanded_lines = split_multi_line_entries(lines_gdf)
 
     lines_df = expanded_lines.copy()
-    lines_df["WKT"] = lines_df.geometry.to_wkt()
-    lines_df["name"] = lines_df.apply(extract_line_name, axis=1)
+    lines_df["WKT"] = lines_df.geometry.to_wkt() # pyright: ignore[reportUnknownMemberType]
+    lines_df["name"] = lines_df.apply(extract_line_name, axis=1) # pyright: ignore[reportUnknownMemberType]
 
     # Create Description column from dbg_lines or use line name
     if "dbg_lines" in lines_df.columns:
@@ -280,6 +282,7 @@ class MunichGeoJson(str, Enum):
     SUBWAY_LIGHTRAIL = "https://loom.cs.uni-freiburg.de/components/subway-lightrail/13/component-220.json"
     TRAM = "https://loom.cs.uni-freiburg.de/components/tram/13/component-176.json"
     COMMUTER_RAIL = "https://loom.cs.uni-freiburg.de/components/rail-commuter/13/component-78.json"
+    BOUNDARY = "https://nominatim.openstreetmap.org/search.php?q=Munich&polygon_geojson=1&format=geojson"
 
 
 def main() -> None:
@@ -326,7 +329,7 @@ def main() -> None:
             gdf = gpd.read_file(temp_geojson)  # pyright: ignore[reportUnknownMemberType]
 
             # Analyze geometry types
-            geometry_types = gdf.geometry.geom_type.value_counts().to_dict()
+            geometry_types = gdf.geometry.geom_type.value_counts().to_dict() # pyright: ignore[reportUnknownMemberType]
             logger.info(
                 "Loaded GeoJSON data",
                 endpoint=endpoint.name,
@@ -345,6 +348,14 @@ def main() -> None:
 
             # Google My Maps limits: max 2,000 rows, 5MB file size
             max_features = 1500  # Conservative limit to stay under 2,000 with metadata
+
+            # Map endpoints to component numbers from working files
+            component_map = {
+                "SUBWAY_LIGHTRAIL": "component220",
+                "TRAM": "component176",
+                "COMMUTER_RAIL": "component78",
+            }
+            component_name = component_map.get(endpoint.name, f"component{endpoint.name.lower()}")
 
             # Process stations
             if len(points_gdf) > 0:
@@ -365,13 +376,6 @@ def main() -> None:
 
                 # Create and save simplified KML with component naming like working file
                 stations_kml = output_dir / f"munich_{endpoint.name.lower()}_stations_google.kml"
-                # Map endpoints to component numbers from working files
-                component_map = {
-                    "SUBWAY_LIGHTRAIL": "component220",
-                    "TRAM": "component176",
-                    "COMMUTER_RAIL": "component78",
-                }
-                component_name = component_map.get(endpoint.name, f"component{endpoint.name.lower()}")
                 create_simple_kml(points_gdf, component_name, stations_kml)
 
                 logger.info(
