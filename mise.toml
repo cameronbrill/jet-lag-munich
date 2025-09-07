@@ -1,0 +1,8 @@
+[tools]
+"npm:@infisical/cli" = "0.41.99"
+pnpm = "10.15.1"
+python = "3.13"
+uv = "latest"
+
+[tasks]
+start = "infisical run -- uv run main.py"
