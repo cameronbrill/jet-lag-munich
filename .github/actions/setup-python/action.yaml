@@ -4,12 +4,18 @@ description: Sets up Python and dependencies using mise and uv
 runs:
   using: "composite"
   steps:
+    - name: Install GDAL system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gdal-bin libgdal-dev
+
     - name: Install python and uv
       uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3
       with:
         install: true
         cache: true
-        install_args: "python uv \"github:OSGeo/gdal\""
+        install_args: "python uv"
 
     - name: Restore uv cache
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
@@ -24,6 +30,8 @@ runs:
       env:
         # Configure a constant location for the uv cache
         UV_CACHE_DIR: /tmp/.uv-cache
+        # Help GDAL Python package find system installation
+        GDAL_CONFIG: /usr/bin/gdal-config
       shell: bash
       run: |
         uv sync --group dev --locked
