@@ -120,7 +120,8 @@ jobs:
           body-path: pytest-summary.md
           edit-mode: replace
 
-      - name: Run slow tests
+      - name: Run slow tests (original snapshots)
+        id: slow-tests-original
         run: |
           uv run pytest -q --junit-xml=results/pytest-slow-junit.xml -m "slow"
         if: ${{ github.event_name == 'pull_request' && !cancelled() }}
@@ -162,6 +163,124 @@ jobs:
           body-includes: "Test Results"
           comment-author: "github-actions[bot]"
           body-path: combined-test-summary.md
+          edit-mode: replace
+
+      - name: Copy original snapshots for comparison
+        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
+        run: |
+          mkdir -p original-snapshots
+          cp tests/map/__snapshots__/test_visual/*.png original-snapshots/
+
+      - name: Run slow tests with snapshot update
+        id: slow-tests-updated
+        run: |
+          uv run pytest -q --junit-xml=results/pytest-slow-updated-junit.xml -m "slow" --snapshot-update
+        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
+
+      - name: Upload images to imgur and create comparison comment
+        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
+        run: |
+          echo "# 📸 Visual Test Snapshots Comparison" > visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+          echo "Generated image snapshots from visual tests - showing original vs updated:" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          # Function to upload image to imgur and get URL
+          upload_to_imgur() {
+            local image_path="$1"
+            local response=$(curl -s -X POST \
+              -H "Authorization: Client-ID 546c25a59c58ad7" \
+              -F "image=@$image_path" \
+              https://api.imgur.com/3/image)
+            echo "$response" | jq -r '.data.link'
+          }
+
+          echo "## Munich Boundary Basemap Overlays" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### Munich Boundary Basemap Overlay" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload original and updated images to imgur
+          ORIGINAL_URL=$(upload_to_imgur "original-snapshots/TestMunichBasemap.test_munich_boundary_basemap_overlay.png")
+          UPDATED_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichBasemap.test_munich_boundary_basemap_overlay.png")
+          echo "| ![Original]($ORIGINAL_URL) | ![Updated]($UPDATED_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### Munich Boundary Different Providers" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload different providers images
+          ORIGINAL_PROVIDERS_URL=$(upload_to_imgur "original-snapshots/TestMunichBasemap.test_munich_boundary_different_providers.png")
+          UPDATED_PROVIDERS_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichBasemap.test_munich_boundary_different_providers.png")
+          echo "| ![Original]($ORIGINAL_PROVIDERS_URL) | ![Updated]($UPDATED_PROVIDERS_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "## Individual Transit Systems" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### U-Bahn (Subway) System" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload subway images
+          ORIGINAL_SUBWAY_URL=$(upload_to_imgur "original-snapshots/TestMunichTransitSystems.test_munich_subway_system.png")
+          UPDATED_SUBWAY_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichTransitSystems.test_munich_subway_system.png")
+          echo "| ![Original]($ORIGINAL_SUBWAY_URL) | ![Updated]($UPDATED_SUBWAY_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### Tram System" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload tram images
+          ORIGINAL_TRAM_URL=$(upload_to_imgur "original-snapshots/TestMunichTransitSystems.test_munich_tram_system.png")
+          UPDATED_TRAM_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichTransitSystems.test_munich_tram_system.png")
+          echo "| ![Original]($ORIGINAL_TRAM_URL) | ![Updated]($UPDATED_TRAM_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### S-Bahn (Commuter Rail) System" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload commuter rail images
+          ORIGINAL_COMMUTER_URL=$(upload_to_imgur "original-snapshots/TestMunichTransitSystems.test_munich_commuter_rail_system.png")
+          UPDATED_COMMUTER_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichTransitSystems.test_munich_commuter_rail_system.png")
+          echo "| ![Original]($ORIGINAL_COMMUTER_URL) | ![Updated]($UPDATED_COMMUTER_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "## Complete Transit System Overlays" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### CartoDB Positron Basemap" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload complete system images
+          ORIGINAL_COMPLETE_URL=$(upload_to_imgur "original-snapshots/TestMunichCompleteSystem.test_munich_complete_transit_system.png")
+          UPDATED_COMPLETE_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichCompleteSystem.test_munich_complete_transit_system.png")
+          echo "| ![Original]($ORIGINAL_COMPLETE_URL) | ![Updated]($UPDATED_COMPLETE_URL) |" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+
+          echo "### CartoDB Voyager Basemap" >> visual-snapshots-comment.md
+          echo "| Original | Updated |" >> visual-snapshots-comment.md
+          echo "|----------|---------|" >> visual-snapshots-comment.md
+
+          # Upload voyager images
+          ORIGINAL_VOYAGER_URL=$(upload_to_imgur "original-snapshots/TestMunichCompleteSystem.test_munich_complete_transit_system_voyager.png")
+          UPDATED_VOYAGER_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichCompleteSystem.test_munich_complete_transit_system_voyager.png")
+          echo "| ![Original]($ORIGINAL_VOYAGER_URL) | ![Updated]($UPDATED_VOYAGER_URL) |" >> visual-snapshots-comment.md
+
+      - name: Update Comment with visual snapshots
+        uses: ./.github/actions/find-update-or-create-comment
+        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "Visual Test Snapshots"
+          comment-author: "github-actions[bot]"
+          body-path: visual-snapshots-comment.md
           edit-mode: replace
 
       - name: Run tests with coverage
