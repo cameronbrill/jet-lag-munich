@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pytest
 from rich.console import Console
@@ -59,7 +60,7 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_pytest_loggers()
 
 
-def pytest_sessionstart(session: pytest.Session) -> None:
+def pytest_sessionstart(session: pytest.Session) -> None:  # noqa: ARG001
     """Called after the Session object has been created."""
     # Ensure our logging is configured for the session
     configure_logging(level="INFO", format_json=False)
@@ -80,7 +81,7 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
         )
 
 
-def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo, report: pytest.TestReport) -> None:
+def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo) -> None:  # pyright: ignore[reportMissingTypeArgument]
     """Hook to format exceptions with Rich when they occur."""
     if call.excinfo is not None:
         logger = structlog.get_logger("pytest")
@@ -93,27 +94,25 @@ def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo, report: 
             exception_message=str(call.excinfo.value),
         )
 
-        # Render Rich traceback directly to avoid duplication
+        # Render Rich traceback without re-raising the exception
         console = Console()
-        try:
-            # Re-raise the exception to get a proper traceback for Rich
-            if call.excinfo.value:
-                raise call.excinfo.value
-        except Exception:
-            # Now we're in an exception context, Rich can render the traceback
-            traceback = Traceback(
-                show_locals=True,
-                max_frames=5,
-            )
-            console.print(traceback)
+        traceback = Traceback.from_exception(
+            call.excinfo.type,
+            call.excinfo.value,
+            call.excinfo.tb,
+            show_locals=True,
+            max_frames=5,
+        )
+        console.print(traceback)
 
 
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytest.TestReport:
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytest.TestReport:  # pyright: ignore[reportMissingTypeArgument]
     """Override test report generation to suppress default traceback rendering."""
     report = pytest.TestReport.from_item_and_call(item, call)
 
     # If the test failed, clear the longrepr to prevent pytest from showing its own traceback
-    if report.outcome == "failed" and call.excinfo is not None:
+    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+    if report.outcome == "failed" and call.excinfo is not None and not is_ci:
         report.longrepr = None
 
     return report

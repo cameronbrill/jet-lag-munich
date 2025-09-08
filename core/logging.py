@@ -41,7 +41,7 @@ def configure_logging(
     if format_json:
         # JSON output for production
         final_processor = structlog.processors.JSONRenderer()
-        shared_processors.extend([structlog.processors.dict_tracebacks])
+        shared_processors.append(structlog.processors.dict_tracebacks)  # pyright: ignore[reportArgumentType]
     else:
         # Console output for development - use Rich console renderer without Rich tracebacks
         # Rich tracebacks will be handled by pytest hooks to avoid duplication
