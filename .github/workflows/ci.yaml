@@ -273,34 +273,25 @@ jobs:
           UPDATED_VOYAGER_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichCompleteSystem.test_munich_complete_transit_system_voyager.png")
           echo "| ![Original]($ORIGINAL_VOYAGER_URL) | ![Updated]($UPDATED_VOYAGER_URL) |" >> visual-snapshots-comment.md
 
-      - name: Create or update visual snapshots comment (comparison mode)
+      - name: Create "No Diff" comment content (when tests succeed)
+        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'success' }}
+        run: |
+          # Overwrite the comment file with "No Diff" content
+          echo "# 📸 Visual Test Snapshots Comparison" > visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+          echo "**No visual changes detected** - all snapshot tests passed! ✅" >> visual-snapshots-comment.md
+          echo "" >> visual-snapshots-comment.md
+          echo "The visual snapshots match the expected references. No updates needed." >> visual-snapshots-comment.md
+
+      - name: Update visual snapshots comment
         uses: ./.github/actions/find-update-or-create-comment
-        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body-includes: "Visual Test Snapshots Comparison"
           comment-author: "github-actions[bot]"
           body-path: visual-snapshots-comment.md
           edit-mode: replace
-
-      - name: Mark visual snapshots comment as outdated (when tests succeed)
-        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'success' }}
-        run: |
-          # Find the existing visual snapshots comment and mark it as outdated
-          COMMENT_ID=$(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("Visual Test Snapshots"))) | .id' | head -1)
-
-          if [ ! -z "$COMMENT_ID" ]; then
-            echo "Marking comment $COMMENT_ID as outdated"
-            gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID \
-              --method PATCH \
-              --field body="~~$(gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID --jq '.body')~~" \
-              --field outdated=true
-          else
-            echo "No existing visual snapshots comment found to mark as outdated"
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Run tests with coverage
         if: ${{ !cancelled() }}
