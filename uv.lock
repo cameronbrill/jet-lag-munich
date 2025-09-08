@@ -451,6 +451,7 @@ dev = [
     { name = "syrupy" },
     { name = "ty" },
     { name = "types-pyyaml" },
+    { name = "xyzservices" },
 ]
 
 [package.metadata]
@@ -478,6 +479,7 @@ dev = [
     { name = "syrupy", specifier = ">=4.9.1" },
     { name = "ty", specifier = ">=0.0.1a20" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250809" },
+    { name = "xyzservices", specifier = ">=2025.4.0" },
 ]
 
 [[package]]

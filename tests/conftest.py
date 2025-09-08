@@ -59,7 +59,7 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_pytest_loggers()
 
 
-def pytest_sessionstart(session: pytest.Session) -> None:
+def pytest_sessionstart(session: pytest.Session) -> None:  # noqa: ARG001
     """Called after the Session object has been created."""
     # Ensure our logging is configured for the session
     configure_logging(level="INFO", format_json=False)
@@ -80,7 +80,7 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
         )
 
 
-def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo, report: pytest.TestReport) -> None:
+def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo) -> None:  # pyright: ignore[reportMissingTypeArgument]
     """Hook to format exceptions with Rich when they occur."""
     if call.excinfo is not None:
         logger = structlog.get_logger("pytest")
@@ -95,11 +95,15 @@ def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo, report: 
 
         # Render Rich traceback directly to avoid duplication
         console = Console()
-        try:
-            # Re-raise the exception to get a proper traceback for Rich
-            if call.excinfo.value:
+
+        def _render_traceback() -> None:
+            """Render the traceback using Rich."""
+            if call.excinfo is not None and call.excinfo.value is not None:  # pyright: ignore[reportUnnecessaryComparison]
                 raise call.excinfo.value
-        except Exception:
+
+        try:
+            _render_traceback()
+        except (ValueError, RuntimeError, ImportError, AttributeError, TypeError):
             # Now we're in an exception context, Rich can render the traceback
             traceback = Traceback(
                 show_locals=True,
@@ -108,7 +112,7 @@ def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo, report: 
             console.print(traceback)
 
 
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytest.TestReport:
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytest.TestReport:  # pyright: ignore[reportMissingTypeArgument]
     """Override test report generation to suppress default traceback rendering."""
     report = pytest.TestReport.from_item_and_call(item, call)
 

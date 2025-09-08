@@ -1,5 +1,8 @@
 """Test Munich basemap rendering with boundary overlay."""
 
+import json
+from typing import Any
+
 import contextily as ctx
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -15,64 +18,62 @@ from core.map.main import (
 
 
 @pytest.fixture()
-def snapshot_png(snapshot):
+def snapshot_png(snapshot: Any) -> Any:
     """PNG snapshot extension for visual testing."""
     return snapshot.use_extension(PNGImageSnapshotExtension)
 
 
 @pytest.fixture()
-def munich_boundary_data():
+def munich_boundary_data() -> gpd.GeoDataFrame:
     """Load Munich boundary data for testing."""
     # Fetch Munich boundary data
-    geojson_text = fetch_geojson_data(MunichGeoJson.BOUNDARY.value)
-    import json
-
-    boundary_data = json.loads(geojson_text)
-    boundary_gdf = gpd.GeoDataFrame.from_features(boundary_data["features"], crs="EPSG:4326")
-    boundary_gdf = extract_boundary_polygon(boundary_gdf)
-    return boundary_gdf
+    geojson_text: str = fetch_geojson_data(MunichGeoJson.BOUNDARY.value)
+    boundary_data: Any = json.loads(geojson_text)
+    boundary_gdf: gpd.GeoDataFrame = gpd.GeoDataFrame.from_features(boundary_data["features"], crs="EPSG:4326")
+    return extract_boundary_polygon(boundary_gdf)
 
 
 @pytest.fixture()
-def munich_subway_data():
+def munich_subway_data() -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Load Munich subway (U-Bahn) data for testing."""
-    geojson_text = fetch_geojson_data(MunichGeoJson.SUBWAY_LIGHTRAIL.value)
-    import json
-
-    subway_data = json.loads(geojson_text)
-    subway_gdf = gpd.GeoDataFrame.from_features(subway_data["features"], crs="EPSG:4326")
+    geojson_text: str = fetch_geojson_data(MunichGeoJson.SUBWAY_LIGHTRAIL.value)
+    subway_data: Any = json.loads(geojson_text)
+    subway_gdf: gpd.GeoDataFrame = gpd.GeoDataFrame.from_features(subway_data["features"], crs="EPSG:4326")
+    stations_gdf: gpd.GeoDataFrame
+    lines_gdf: gpd.GeoDataFrame
     stations_gdf, lines_gdf = separate_geometries(subway_gdf)
     return stations_gdf, lines_gdf
 
 
 @pytest.fixture()
-def munich_tram_data():
+def munich_tram_data() -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Load Munich tram data for testing."""
-    geojson_text = fetch_geojson_data(MunichGeoJson.TRAM.value)
-    import json
-
-    tram_data = json.loads(geojson_text)
-    tram_gdf = gpd.GeoDataFrame.from_features(tram_data["features"], crs="EPSG:4326")
+    geojson_text: str = fetch_geojson_data(MunichGeoJson.TRAM.value)
+    tram_data: Any = json.loads(geojson_text)
+    tram_gdf: gpd.GeoDataFrame = gpd.GeoDataFrame.from_features(tram_data["features"], crs="EPSG:4326")
+    stations_gdf: gpd.GeoDataFrame
+    lines_gdf: gpd.GeoDataFrame
     stations_gdf, lines_gdf = separate_geometries(tram_gdf)
     return stations_gdf, lines_gdf
 
 
 @pytest.fixture()
-def munich_commuter_rail_data():
+def munich_commuter_rail_data() -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Load Munich commuter rail (S-Bahn) data for testing."""
-    geojson_text = fetch_geojson_data(MunichGeoJson.COMMUTER_RAIL.value)
-    import json
-
-    commuter_data = json.loads(geojson_text)
-    commuter_gdf = gpd.GeoDataFrame.from_features(commuter_data["features"], crs="EPSG:4326")
+    geojson_text: str = fetch_geojson_data(MunichGeoJson.COMMUTER_RAIL.value)
+    commuter_data: Any = json.loads(geojson_text)
+    commuter_gdf: gpd.GeoDataFrame = gpd.GeoDataFrame.from_features(commuter_data["features"], crs="EPSG:4326")
+    stations_gdf: gpd.GeoDataFrame
+    lines_gdf: gpd.GeoDataFrame
     stations_gdf, lines_gdf = separate_geometries(commuter_gdf)
     return stations_gdf, lines_gdf
 
 
+@pytest.mark.slow()
 class TestMunichBasemap:
     """Test Munich basemap rendering with boundary overlay."""
 
-    def test_munich_boundary_basemap_overlay(self, munich_boundary_data, snapshot_png):
+    def test_munich_boundary_basemap_overlay(self, munich_boundary_data: gpd.GeoDataFrame, snapshot_png: Any) -> None:
         """Test rendering basemap with Munich boundary overlay using contextily's simple approach.
 
         Based on the contextily documentation TL;DR section:
@@ -93,7 +94,7 @@ class TestMunichBasemap:
 
         # Add basemap using contextily's simple approach
         # This automatically handles coordinate system conversion and zoom level calculation
-        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Positron) # ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Munich City Boundary with Basemap", fontsize=16, fontweight="bold")
@@ -112,7 +113,9 @@ class TestMunichBasemap:
         # Verify the image matches expected snapshot
         assert image_bytes == snapshot_png
 
-    def test_munich_boundary_different_providers(self, munich_boundary_data, snapshot_png):
+    def test_munich_boundary_different_providers(
+        self, munich_boundary_data: gpd.GeoDataFrame, snapshot_png: Any
+    ) -> None:
         """Test Munich boundary with different basemap providers."""
         # Test with CartoDB Voyager provider
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
@@ -123,7 +126,7 @@ class TestMunichBasemap:
         )
 
         # Add basemap with Voyager provider
-        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Voyager)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Voyager)  #  ty: ignore[unresolved-attribute]
 
         ax.set_title("Munich Boundary - CartoDB Voyager", fontsize=16, fontweight="bold")
         ax.legend(loc="upper right", framealpha=0.9)
@@ -142,12 +145,18 @@ class TestMunichBasemap:
         assert image_bytes == snapshot_png
 
 
+@pytest.mark.slow()
 class TestMunichCompleteSystem:
     """Test complete Munich transit system with all systems overlaid together."""
 
     def test_munich_complete_transit_system(
-        self, munich_subway_data, munich_tram_data, munich_commuter_rail_data, munich_boundary_data, snapshot_png
-    ):
+        self,
+        munich_subway_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_tram_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_commuter_rail_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_boundary_data: gpd.GeoDataFrame,
+        snapshot_png: Any,
+    ) -> None:
         """Test rendering complete Munich transit system with all lines and stations overlaid together."""
         subway_stations, subway_lines = munich_subway_data
         tram_stations, tram_lines = munich_tram_data
@@ -183,7 +192,7 @@ class TestMunichCompleteSystem:
 
         # Add basemap using contextily's simple approach
         # Use subway data for CRS reference (all should be the same)
-        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Positron)  #  ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Complete Munich Transit System", fontsize=18, fontweight="bold")
@@ -203,8 +212,13 @@ class TestMunichCompleteSystem:
         assert image_bytes == snapshot_png
 
     def test_munich_complete_transit_system_voyager(
-        self, munich_subway_data, munich_tram_data, munich_commuter_rail_data, munich_boundary_data, snapshot_png
-    ):
+        self,
+        munich_subway_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_tram_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_commuter_rail_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_boundary_data: gpd.GeoDataFrame,
+        snapshot_png: Any,
+    ) -> None:
         """Test rendering complete Munich transit system with CartoDB Voyager basemap."""
         subway_stations, subway_lines = munich_subway_data
         tram_stations, tram_lines = munich_tram_data
@@ -239,7 +253,7 @@ class TestMunichCompleteSystem:
             commuter_stations.plot(ax=ax, color="darkgreen", markersize=10, alpha=0.95, label="S-Bahn Stations")
 
         # Add basemap using CartoDB Voyager provider
-        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Voyager)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Voyager)  #  ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Complete Munich Transit System - CartoDB Voyager", fontsize=18, fontweight="bold")
@@ -259,10 +273,16 @@ class TestMunichCompleteSystem:
         assert image_bytes == snapshot_png
 
 
+@pytest.mark.slow()
 class TestMunichTransitSystems:
     """Test Munich transit systems with basemap rendering."""
 
-    def test_munich_subway_system(self, munich_subway_data, munich_boundary_data, snapshot_png):
+    def test_munich_subway_system(
+        self,
+        munich_subway_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_boundary_data: gpd.GeoDataFrame,
+        snapshot_png: Any,
+    ) -> None:
         """Test rendering Munich subway (U-Bahn) system with lines and stations."""
         stations_gdf, lines_gdf = munich_subway_data
 
@@ -283,7 +303,7 @@ class TestMunichTransitSystems:
             stations_gdf.plot(ax=ax, color="darkred", markersize=6, alpha=0.9, label="U-Bahn Stations")
 
         # Add basemap using contextily's simple approach
-        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  #  ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Munich Subway System (U-Bahn)", fontsize=16, fontweight="bold")
@@ -302,7 +322,12 @@ class TestMunichTransitSystems:
         # Verify the image matches expected snapshot
         assert image_bytes == snapshot_png
 
-    def test_munich_tram_system(self, munich_tram_data, munich_boundary_data, snapshot_png):
+    def test_munich_tram_system(
+        self,
+        munich_tram_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_boundary_data: gpd.GeoDataFrame,
+        snapshot_png: Any,
+    ) -> None:
         """Test rendering Munich tram system with lines and stations."""
         stations_gdf, lines_gdf = munich_tram_data
 
@@ -323,7 +348,7 @@ class TestMunichTransitSystems:
             stations_gdf.plot(ax=ax, color="darkorange", markersize=5, alpha=0.9, label="Tram Stations")
 
         # Add basemap using contextily's simple approach
-        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  #  ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Munich Tram System", fontsize=16, fontweight="bold")
@@ -342,7 +367,12 @@ class TestMunichTransitSystems:
         # Verify the image matches expected snapshot
         assert image_bytes == snapshot_png
 
-    def test_munich_commuter_rail_system(self, munich_commuter_rail_data, munich_boundary_data, snapshot_png):
+    def test_munich_commuter_rail_system(
+        self,
+        munich_commuter_rail_data: tuple[gpd.GeoDataFrame, gpd.GeoDataFrame],
+        munich_boundary_data: gpd.GeoDataFrame,
+        snapshot_png: Any,
+    ) -> None:
         """Test rendering Munich commuter rail (S-Bahn) system with lines and stations."""
         stations_gdf, lines_gdf = munich_commuter_rail_data
 
@@ -363,7 +393,7 @@ class TestMunichTransitSystems:
             stations_gdf.plot(ax=ax, color="darkgreen", markersize=6, alpha=0.9, label="S-Bahn Stations")
 
         # Add basemap using contextily's simple approach
-        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  #  ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Munich Commuter Rail System (S-Bahn)", fontsize=16, fontweight="bold")
