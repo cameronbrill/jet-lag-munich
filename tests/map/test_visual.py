@@ -1,229 +1,383 @@
-"""Comprehensive visual snapshot tests for Munich transit map data."""
+"""Test Munich basemap rendering with boundary overlay."""
 
-import json
-from pathlib import Path
-import tempfile
-
+import contextily as ctx
 import geopandas as gpd
-import pandas as pd
+import matplotlib.pyplot as plt
 import pytest
-from shapely import wkt
 from syrupy.extensions.image import PNGImageSnapshotExtension
 
 from core.map.main import (
     MunichGeoJson,
-    create_visual_map,
     extract_boundary_polygon,
     fetch_geojson_data,
-    main,
     separate_geometries,
 )
 
 
 @pytest.fixture()
 def snapshot_png(snapshot):
-    """Configure syrupy to use PNG image snapshots."""
+    """PNG snapshot extension for visual testing."""
     return snapshot.use_extension(PNGImageSnapshotExtension)
 
 
 @pytest.fixture()
-def real_munich_data():
-    """Fetch and process all real Munich transit data for comprehensive testing."""
-    all_stations = []
-    all_lines = []
-    boundary_gdf = None
+def munich_boundary_data():
+    """Load Munich boundary data for testing."""
+    # Fetch Munich boundary data
+    geojson_text = fetch_geojson_data(MunichGeoJson.BOUNDARY.value)
+    import json
 
-    # Fetch data from all endpoints
-    for endpoint in MunichGeoJson:
-        if endpoint == MunichGeoJson.BOUNDARY:
-            # Handle boundary separately
-            geojson_text = fetch_geojson_data(endpoint.value)
-            boundary_data = json.loads(geojson_text)
-            boundary_gdf = gpd.GeoDataFrame.from_features(boundary_data["features"], crs="EPSG:4326")
-            boundary_gdf = extract_boundary_polygon(boundary_gdf)
-        else:
-            # Handle transit data
-            geojson_text = fetch_geojson_data(endpoint.value)
-            gdf = gpd.GeoDataFrame.from_features(json.loads(geojson_text)["features"], crs="EPSG:4326")
-            points_gdf, lines_gdf = separate_geometries(gdf)
-
-            # Add endpoint type for identification
-            points_gdf["endpoint_type"] = endpoint.name
-            lines_gdf["endpoint_type"] = endpoint.name
-
-            all_stations.append(points_gdf)
-            all_lines.append(lines_gdf)
-
-    # Combine all transit data
-    combined_stations = pd.concat(all_stations, ignore_index=True) if all_stations else gpd.GeoDataFrame()
-    combined_lines = pd.concat(all_lines, ignore_index=True) if all_lines else gpd.GeoDataFrame()
-
-    return combined_stations, combined_lines, boundary_gdf
+    boundary_data = json.loads(geojson_text)
+    boundary_gdf = gpd.GeoDataFrame.from_features(boundary_data["features"], crs="EPSG:4326")
+    boundary_gdf = extract_boundary_polygon(boundary_gdf)
+    return boundary_gdf
 
 
-@pytest.mark.slow()
-class TestComprehensiveVisualSnapshots:
-    """Comprehensive visual snapshot tests using real Munich transit data."""
+@pytest.fixture()
+def munich_subway_data():
+    """Load Munich subway (U-Bahn) data for testing."""
+    geojson_text = fetch_geojson_data(MunichGeoJson.SUBWAY_LIGHTRAIL.value)
+    import json
 
-    def test_complete_munich_transit_system_snapshot(self, real_munich_data, snapshot_png):
-        """Should create comprehensive visual snapshot of entire Munich transit system."""
-        stations_gdf, lines_gdf, boundary_gdf = real_munich_data
+    subway_data = json.loads(geojson_text)
+    subway_gdf = gpd.GeoDataFrame.from_features(subway_data["features"], crs="EPSG:4326")
+    stations_gdf, lines_gdf = separate_geometries(subway_gdf)
+    return stations_gdf, lines_gdf
 
-        # Generate visual map with all real data
-        image_bytes = create_visual_map(
-            stations_gdf=stations_gdf,
-            lines_gdf=lines_gdf,
-            boundary_gdf=boundary_gdf,
-            title="Complete Munich Transit System"
+
+@pytest.fixture()
+def munich_tram_data():
+    """Load Munich tram data for testing."""
+    geojson_text = fetch_geojson_data(MunichGeoJson.TRAM.value)
+    import json
+
+    tram_data = json.loads(geojson_text)
+    tram_gdf = gpd.GeoDataFrame.from_features(tram_data["features"], crs="EPSG:4326")
+    stations_gdf, lines_gdf = separate_geometries(tram_gdf)
+    return stations_gdf, lines_gdf
+
+
+@pytest.fixture()
+def munich_commuter_rail_data():
+    """Load Munich commuter rail (S-Bahn) data for testing."""
+    geojson_text = fetch_geojson_data(MunichGeoJson.COMMUTER_RAIL.value)
+    import json
+
+    commuter_data = json.loads(geojson_text)
+    commuter_gdf = gpd.GeoDataFrame.from_features(commuter_data["features"], crs="EPSG:4326")
+    stations_gdf, lines_gdf = separate_geometries(commuter_gdf)
+    return stations_gdf, lines_gdf
+
+
+class TestMunichBasemap:
+    """Test Munich basemap rendering with boundary overlay."""
+
+    def test_munich_boundary_basemap_overlay(self, munich_boundary_data, snapshot_png):
+        """Test rendering basemap with Munich boundary overlay using contextily's simple approach.
+
+        Based on the contextily documentation TL;DR section:
+        https://contextily.readthedocs.io/en/latest/intro_guide.html#TL;DR
+
+        This test follows the simplest approach:
+        1. Plot the boundary data first
+        2. Add basemap using cx.add_basemap(ax, crs=boundary_gdf.crs)
+        3. Let contextily handle coordinate conversion and zoom automatically
+        """
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+
+        # Plot Munich boundary as transparent overlay
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="blue", alpha=0.8, linewidth=2, label="Munich Boundary"
         )
 
-        # Snapshot the comprehensive visualization
+        # Add basemap using contextily's simple approach
+        # This automatically handles coordinate system conversion and zoom level calculation
+        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+
+        # Customize the map
+        ax.set_title("Munich City Boundary with Basemap", fontsize=16, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.9)
+        plt.tight_layout()
+
+        # Convert to bytes for snapshot testing
+        import io
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
         assert image_bytes == snapshot_png
 
-    def test_munich_tram_system_snapshot(self, real_munich_data, snapshot_png):
-        """Should create visual snapshot of Munich tram system (stations and lines)."""
-        stations_gdf, lines_gdf, boundary_gdf = real_munich_data
+    def test_munich_boundary_different_providers(self, munich_boundary_data, snapshot_png):
+        """Test Munich boundary with different basemap providers."""
+        # Test with CartoDB Voyager provider
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
 
-        # Filter for tram data only
-        tram_stations = stations_gdf[stations_gdf["endpoint_type"] == "TRAM"] if "endpoint_type" in stations_gdf.columns else gpd.GeoDataFrame()
-        tram_lines = lines_gdf[lines_gdf["endpoint_type"] == "TRAM"] if "endpoint_type" in lines_gdf.columns else gpd.GeoDataFrame()
-
-        # Generate visual map with tram data
-        image_bytes = create_visual_map(
-            stations_gdf=tram_stations,
-            lines_gdf=tram_lines,
-            boundary_gdf=boundary_gdf,
-            title="Munich Tram System"
+        # Plot Munich boundary
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="red", alpha=0.8, linewidth=3, label="Munich Boundary"
         )
 
-        # Snapshot the tram system visualization
-        assert image_bytes == snapshot_png
+        # Add basemap with Voyager provider
+        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Voyager)  # type: ignore[attr-defined]
 
-    def test_munich_subway_system_snapshot(self, real_munich_data, snapshot_png):
-        """Should create visual snapshot of Munich subway/light rail system (stations and lines)."""
-        stations_gdf, lines_gdf, boundary_gdf = real_munich_data
+        ax.set_title("Munich Boundary - CartoDB Voyager", fontsize=16, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.9)
+        plt.tight_layout()
 
-        # Filter for subway/light rail data only
-        subway_stations = stations_gdf[stations_gdf["endpoint_type"] == "SUBWAY_LIGHTRAIL"] if "endpoint_type" in stations_gdf.columns else gpd.GeoDataFrame()
-        subway_lines = lines_gdf[lines_gdf["endpoint_type"] == "SUBWAY_LIGHTRAIL"] if "endpoint_type" in lines_gdf.columns else gpd.GeoDataFrame()
+        # Convert to bytes for snapshot testing
+        import io
 
-        # Generate visual map with subway data
-        image_bytes = create_visual_map(
-            stations_gdf=subway_stations,
-            lines_gdf=subway_lines,
-            boundary_gdf=boundary_gdf,
-            title="Munich Subway/Light Rail System"
-        )
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
 
-        # Snapshot the subway system visualization
-        assert image_bytes == snapshot_png
-
-    def test_munich_commuter_rail_system_snapshot(self, real_munich_data, snapshot_png):
-        """Should create visual snapshot of Munich commuter rail system (stations and lines)."""
-        stations_gdf, lines_gdf, boundary_gdf = real_munich_data
-
-        # Filter for commuter rail data only
-        commuter_stations = stations_gdf[stations_gdf["endpoint_type"] == "COMMUTER_RAIL"] if "endpoint_type" in stations_gdf.columns else gpd.GeoDataFrame()
-        commuter_lines = lines_gdf[lines_gdf["endpoint_type"] == "COMMUTER_RAIL"] if "endpoint_type" in lines_gdf.columns else gpd.GeoDataFrame()
-
-        # Generate visual map with commuter rail data
-        image_bytes = create_visual_map(
-            stations_gdf=commuter_stations,
-            lines_gdf=commuter_lines,
-            boundary_gdf=boundary_gdf,
-            title="Munich Commuter Rail System"
-        )
-
-        # Snapshot the commuter rail system visualization
-        assert image_bytes == snapshot_png
-
-    def test_munich_boundary_only_snapshot(self, real_munich_data, snapshot_png):
-        """Should create visual snapshot of Munich boundary."""
-        stations_gdf, lines_gdf, boundary_gdf = real_munich_data
-
-        # Generate visual map with only boundary
-        image_bytes = create_visual_map(
-            boundary_gdf=boundary_gdf,
-            title="Munich Administrative Boundary"
-        )
-
-        # Snapshot the boundary visualization
+        # Verify the image matches expected snapshot
         assert image_bytes == snapshot_png
 
 
-@pytest.mark.slow()
-class TestBuildArtifactsVisualIntegration:
-    """Integration tests that verify visual output matches actual build artifacts."""
+class TestMunichCompleteSystem:
+    """Test complete Munich transit system with all systems overlaid together."""
 
-    def test_visual_matches_build_artifacts_snapshot(self, snapshot_png):
-        """Should create visual snapshot that matches the actual build artifacts."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+    def test_munich_complete_transit_system(
+        self, munich_subway_data, munich_tram_data, munich_commuter_rail_data, munich_boundary_data, snapshot_png
+    ):
+        """Test rendering complete Munich transit system with all lines and stations overlaid together."""
+        subway_stations, subway_lines = munich_subway_data
+        tram_stations, tram_lines = munich_tram_data
+        commuter_stations, commuter_lines = munich_commuter_rail_data
 
-            # Create output directory
-            output_dir = temp_path / "output"
-            output_dir.mkdir()
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(14, 12))
 
-            # Mock the output directory in main function
-            from unittest.mock import patch
+        # Plot Munich boundary first (light overlay)
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="gray", alpha=0.6, linewidth=1.5, label="Munich Boundary"
+        )
 
-            with patch('core.map.main.Path') as mock_path:
-                # Make Path("output") return our test directory
-                def path_side_effect(path_str):
-                    if path_str == "output":
-                        return output_dir
-                    return Path(path_str)
+        # Plot all transit lines with distinct colors
+        if len(subway_lines) > 0:
+            subway_lines.plot(ax=ax, color="red", linewidth=2.5, alpha=0.8, label="U-Bahn Lines")
 
-                mock_path.side_effect = path_side_effect
+        if len(tram_lines) > 0:
+            tram_lines.plot(ax=ax, color="orange", linewidth=2, alpha=0.8, label="Tram Lines")
 
-                # Run the full generation process
-                main()
+        if len(commuter_lines) > 0:
+            commuter_lines.plot(ax=ax, color="green", linewidth=2.5, alpha=0.8, label="S-Bahn Lines")
 
-                # Load all generated CSV files and create visual map
-                all_stations = []
-                all_lines = []
-                boundary_gdf = None
+        # Plot all transit stations with distinct colors and sizes
+        if len(subway_stations) > 0:
+            subway_stations.plot(ax=ax, color="darkred", markersize=8, alpha=0.9, label="U-Bahn Stations")
 
-                # Load station CSVs
-                for csv_file in output_dir.glob("*_stations.csv"):
-                    df = pd.read_csv(csv_file)
-                    if not df.empty and 'latitude' in df.columns and 'longitude' in df.columns:
-                        # Convert CSV back to GeoDataFrame
-                        gdf = gpd.GeoDataFrame(
-                            df,
-                            geometry=gpd.points_from_xy(df.longitude, df.latitude),
-                            crs="EPSG:4326"
-                        )
-                        all_stations.append(gdf)
+        if len(tram_stations) > 0:
+            tram_stations.plot(ax=ax, color="darkorange", markersize=6, alpha=0.9, label="Tram Stations")
 
-                # Load line CSVs (including boundary)
-                for csv_file in output_dir.glob("*_lines.csv"):
-                    df = pd.read_csv(csv_file)
-                    if not df.empty and 'WKT' in df.columns:
-                        # Convert WKT back to geometry
-                        df['geometry'] = df['WKT'].apply(wkt.loads)
-                        gdf = gpd.GeoDataFrame(df, crs="EPSG:4326")
-                        all_lines.append(gdf)
+        if len(commuter_stations) > 0:
+            commuter_stations.plot(ax=ax, color="darkgreen", markersize=8, alpha=0.9, label="S-Bahn Stations")
 
-                # Also load boundary CSV
-                boundary_csv = output_dir / "munich_boundary.csv"
-                if boundary_csv.exists():
-                    df = pd.read_csv(boundary_csv)
-                    if not df.empty and 'WKT' in df.columns:
-                        df['geometry'] = df['WKT'].apply(wkt.loads)
-                        boundary_gdf = gpd.GeoDataFrame(df, crs="EPSG:4326")
+        # Add basemap using contextily's simple approach
+        # Use subway data for CRS reference (all should be the same)
+        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
 
-                # Combine all data
-                combined_stations = pd.concat(all_stations, ignore_index=True) if all_stations else gpd.GeoDataFrame()
-                combined_lines = pd.concat(all_lines, ignore_index=True) if all_lines else gpd.GeoDataFrame()
+        # Customize the map
+        ax.set_title("Complete Munich Transit System", fontsize=18, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.95, fontsize=10)
+        plt.tight_layout()
 
-                # Generate visual map from build artifacts
-                image_bytes = create_visual_map(
-                    stations_gdf=combined_stations,
-                    lines_gdf=combined_lines,
-                    boundary_gdf=boundary_gdf,
-                    title="Munich Transit System (Build Artifacts)"
-                )
+        # Convert to bytes for snapshot testing
+        import io
 
-                # Snapshot the build artifacts visualization
-                assert image_bytes == snapshot_png
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
+        assert image_bytes == snapshot_png
+
+    def test_munich_complete_transit_system_voyager(
+        self, munich_subway_data, munich_tram_data, munich_commuter_rail_data, munich_boundary_data, snapshot_png
+    ):
+        """Test rendering complete Munich transit system with CartoDB Voyager basemap."""
+        subway_stations, subway_lines = munich_subway_data
+        tram_stations, tram_lines = munich_tram_data
+        commuter_stations, commuter_lines = munich_commuter_rail_data
+
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(14, 12))
+
+        # Plot Munich boundary first (light overlay)
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="darkgray", alpha=0.7, linewidth=2, label="Munich Boundary"
+        )
+
+        # Plot all transit lines with distinct colors
+        if len(subway_lines) > 0:
+            subway_lines.plot(ax=ax, color="red", linewidth=3, alpha=0.9, label="U-Bahn Lines")
+
+        if len(tram_lines) > 0:
+            tram_lines.plot(ax=ax, color="orange", linewidth=2.5, alpha=0.9, label="Tram Lines")
+
+        if len(commuter_lines) > 0:
+            commuter_lines.plot(ax=ax, color="green", linewidth=3, alpha=0.9, label="S-Bahn Lines")
+
+        # Plot all transit stations with distinct colors and sizes
+        if len(subway_stations) > 0:
+            subway_stations.plot(ax=ax, color="darkred", markersize=10, alpha=0.95, label="U-Bahn Stations")
+
+        if len(tram_stations) > 0:
+            tram_stations.plot(ax=ax, color="darkorange", markersize=7, alpha=0.95, label="Tram Stations")
+
+        if len(commuter_stations) > 0:
+            commuter_stations.plot(ax=ax, color="darkgreen", markersize=10, alpha=0.95, label="S-Bahn Stations")
+
+        # Add basemap using CartoDB Voyager provider
+        ctx.add_basemap(ax, crs=subway_stations.crs, source=ctx.providers.CartoDB.Voyager)  # type: ignore[attr-defined]
+
+        # Customize the map
+        ax.set_title("Complete Munich Transit System - CartoDB Voyager", fontsize=18, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.95, fontsize=10)
+        plt.tight_layout()
+
+        # Convert to bytes for snapshot testing
+        import io
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
+        assert image_bytes == snapshot_png
+
+
+class TestMunichTransitSystems:
+    """Test Munich transit systems with basemap rendering."""
+
+    def test_munich_subway_system(self, munich_subway_data, munich_boundary_data, snapshot_png):
+        """Test rendering Munich subway (U-Bahn) system with lines and stations."""
+        stations_gdf, lines_gdf = munich_subway_data
+
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+
+        # Plot Munich boundary first (light overlay)
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="gray", alpha=0.5, linewidth=1, label="Munich Boundary"
+        )
+
+        # Plot subway lines in red (U-Bahn color)
+        if len(lines_gdf) > 0:
+            lines_gdf.plot(ax=ax, color="red", linewidth=2, alpha=0.8, label="U-Bahn Lines")
+
+        # Plot subway stations
+        if len(stations_gdf) > 0:
+            stations_gdf.plot(ax=ax, color="darkred", markersize=6, alpha=0.9, label="U-Bahn Stations")
+
+        # Add basemap using contextily's simple approach
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+
+        # Customize the map
+        ax.set_title("Munich Subway System (U-Bahn)", fontsize=16, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.9)
+        plt.tight_layout()
+
+        # Convert to bytes for snapshot testing
+        import io
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
+        assert image_bytes == snapshot_png
+
+    def test_munich_tram_system(self, munich_tram_data, munich_boundary_data, snapshot_png):
+        """Test rendering Munich tram system with lines and stations."""
+        stations_gdf, lines_gdf = munich_tram_data
+
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+
+        # Plot Munich boundary first (light overlay)
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="gray", alpha=0.5, linewidth=1, label="Munich Boundary"
+        )
+
+        # Plot tram lines in orange (tram color)
+        if len(lines_gdf) > 0:
+            lines_gdf.plot(ax=ax, color="orange", linewidth=2, alpha=0.8, label="Tram Lines")
+
+        # Plot tram stations
+        if len(stations_gdf) > 0:
+            stations_gdf.plot(ax=ax, color="darkorange", markersize=5, alpha=0.9, label="Tram Stations")
+
+        # Add basemap using contextily's simple approach
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+
+        # Customize the map
+        ax.set_title("Munich Tram System", fontsize=16, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.9)
+        plt.tight_layout()
+
+        # Convert to bytes for snapshot testing
+        import io
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
+        assert image_bytes == snapshot_png
+
+    def test_munich_commuter_rail_system(self, munich_commuter_rail_data, munich_boundary_data, snapshot_png):
+        """Test rendering Munich commuter rail (S-Bahn) system with lines and stations."""
+        stations_gdf, lines_gdf = munich_commuter_rail_data
+
+        # Create figure and axis
+        fig, ax = plt.subplots(1, 1, figsize=(12, 10))
+
+        # Plot Munich boundary first (light overlay)
+        munich_boundary_data.plot(
+            ax=ax, facecolor="none", edgecolor="gray", alpha=0.5, linewidth=1, label="Munich Boundary"
+        )
+
+        # Plot commuter rail lines in green (S-Bahn color)
+        if len(lines_gdf) > 0:
+            lines_gdf.plot(ax=ax, color="green", linewidth=2, alpha=0.8, label="S-Bahn Lines")
+
+        # Plot commuter rail stations
+        if len(stations_gdf) > 0:
+            stations_gdf.plot(ax=ax, color="darkgreen", markersize=6, alpha=0.9, label="S-Bahn Stations")
+
+        # Add basemap using contextily's simple approach
+        ctx.add_basemap(ax, crs=stations_gdf.crs, source=ctx.providers.CartoDB.Positron)  # type: ignore[attr-defined]
+
+        # Customize the map
+        ax.set_title("Munich Commuter Rail System (S-Bahn)", fontsize=16, fontweight="bold")
+        ax.legend(loc="upper right", framealpha=0.9)
+        plt.tight_layout()
+
+        # Convert to bytes for snapshot testing
+        import io
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
+        buf.seek(0)
+        image_bytes = buf.getvalue()
+        plt.close(fig)
+
+        # Verify the image matches expected snapshot
+        assert image_bytes == snapshot_png
