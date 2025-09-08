@@ -171,10 +171,10 @@ jobs:
           mkdir -p original-snapshots
           cp tests/map/__snapshots__/test_visual/*.png original-snapshots/
 
-      - name: Run slow tests with snapshot update
+      - name: Run slow tests with snapshot update (only failed tests)
         id: slow-tests-updated
         run: |
-          uv run pytest -q --junit-xml=results/pytest-slow-updated-junit.xml -m "slow" --snapshot-update
+          uv run pytest -q --junit-xml=results/pytest-slow-updated-junit.xml --last-failed --snapshot-update
         if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
 
       - name: Upload images to imgur and create comparison comment
