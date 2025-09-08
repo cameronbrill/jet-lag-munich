@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pytest
 from rich.console import Console
@@ -117,7 +118,8 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytes
     report = pytest.TestReport.from_item_and_call(item, call)
 
     # If the test failed, clear the longrepr to prevent pytest from showing its own traceback
-    if report.outcome == "failed" and call.excinfo is not None:
+    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+    if report.outcome == "failed" and call.excinfo is not None and not is_ci:
         report.longrepr = None
 
     return report
