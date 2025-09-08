@@ -83,6 +83,8 @@ echo "✅ Project setup complete!"
 [tasks."test:slow"]
   description = "Run slow tests only"
   run         = "uv run pytest -m slow"
+  sources     = ["tests/test_visual.py", "tests/*.py", "core/**/*.py"]
+
 
 [tasks.check]
   description = "Run all checks (format, lint, typecheck, test)"
