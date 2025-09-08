@@ -12,6 +12,7 @@
     "pandas==2.3.2",
     "matplotlib>=3.7.0",
     "contextily>=1.4.0",
+    "folium>=0.14.0",
   ]
 
 [dependency-groups]
@@ -30,6 +31,9 @@
     "types-pyyaml>=6.0.12.20250809",
     "ssort>=0.15.0",
     "ty>=0.0.1a20",
+
+    # logging
+    "rich>=14.1.0",
   ]
 
   [project.scripts]
@@ -47,9 +51,23 @@
   minversion = "8.0"
   testpaths = ["tests/"]
   pythonpath = ["."]
-  addopts = ["-ra", "--strict-markers", "--strict-config", "--showlocals", "-q"]
+  addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "-q",
+    "--log-cli-level=INFO",
+    "--tb=short",
+    "--no-header",
+    "--no-summary",
+    "--disable-warnings",
+  ]
   markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
   filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
   ]
+  log_cli = true
+  log_cli_level = "INFO"
+  log_cli_format = "%(message)s"
+  log_cli_date_format = "%Y-%m-%d %H:%M:%S"
