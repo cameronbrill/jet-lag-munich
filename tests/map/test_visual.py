@@ -1,13 +1,45 @@
 """Test Munich basemap rendering with boundary overlay."""
 
 import json
+import random
 from typing import Any
 
 import contextily as ctx
 import geopandas as gpd
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 from syrupy.extensions.image import PNGImageSnapshotExtension
+
+# Set random seeds for consistent cross-platform results
+random.seed(42)
+np.random.seed(42)
+
+# Configure matplotlib for consistent cross-platform rendering
+matplotlib.use("Agg")  # Use non-interactive backend
+plt.rcParams.update({
+    "font.family": "DejaVu Sans",  # Use consistent font
+    "font.size": 10,
+    "figure.dpi": 100,  # Consistent DPI
+    "savefig.dpi": 100,
+    "savefig.bbox": "tight",
+    "savefig.pad_inches": 0.1,
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    # Additional settings for cross-platform consistency
+    "font.serif": ["DejaVu Serif"],
+    "font.sans-serif": ["DejaVu Sans"],
+    "font.monospace": ["DejaVu Sans Mono"],
+    "axes.linewidth": 0.5,
+    "grid.linewidth": 0.5,
+    "lines.linewidth": 1.0,
+    "patch.linewidth": 0.5,
+    "xtick.major.width": 0.5,
+    "ytick.major.width": 0.5,
+    "xtick.minor.width": 0.5,
+    "ytick.minor.width": 0.5,
+})
 
 from core.map.main import (
     MunichGeoJson,
@@ -17,9 +49,27 @@ from core.map.main import (
 )
 
 
+def _generate_consistent_image(fig: plt.Figure) -> bytes:
+    """Generate a consistent image for cross-platform snapshot testing."""
+    import io
+
+    buf = io.BytesIO()
+    fig.savefig(
+        buf,
+        format="png",
+        dpi=100,  # Consistent DPI
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+        pad_inches=0.1,
+    )
+    buf.seek(0)
+    return buf.getvalue()
+
+
 @pytest.fixture()
 def snapshot_png(snapshot: Any) -> Any:
-    """PNG snapshot extension for visual testing."""
+    """PNG snapshot extension for visual testing with cross-platform support."""
     return snapshot.use_extension(PNGImageSnapshotExtension)
 
 
@@ -101,13 +151,8 @@ class TestMunichBasemap:
         ax.legend(loc="upper right", framealpha=0.9)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -132,13 +177,8 @@ class TestMunichBasemap:
         ax.legend(loc="upper right", framealpha=0.9)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -199,13 +239,8 @@ class TestMunichCompleteSystem:
         ax.legend(loc="upper right", framealpha=0.95, fontsize=10)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -260,13 +295,8 @@ class TestMunichCompleteSystem:
         ax.legend(loc="upper right", framealpha=0.95, fontsize=10)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -310,13 +340,8 @@ class TestMunichTransitSystems:
         ax.legend(loc="upper right", framealpha=0.9)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -355,13 +380,8 @@ class TestMunichTransitSystems:
         ax.legend(loc="upper right", framealpha=0.9)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
@@ -400,13 +420,8 @@ class TestMunichTransitSystems:
         ax.legend(loc="upper right", framealpha=0.9)
         plt.tight_layout()
 
-        # Convert to bytes for snapshot testing
-        import io
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor="white")
-        buf.seek(0)
-        image_bytes = buf.getvalue()
+        # Convert to bytes for snapshot testing using consistent method
+        image_bytes = _generate_consistent_image(fig)
         plt.close(fig)
 
         # Verify the image matches expected snapshot
