@@ -74,7 +74,7 @@ echo "✅ Project setup complete!"
 
 [tasks."test:cov"]
   description = "Run tests with coverage"
-  run         = "uv run pytest --cov=core --cov=apps --cov=storage --cov-report=term-missing"
+  run         = "uv run pytest --cov=core --cov-report=term-missing --cov-report=json:coverage.json"
 
 [tasks."test:fast"]
   description = "Run fast tests only"
