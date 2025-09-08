@@ -1,3 +1,14 @@
-https://loom.cs.uni-freiburg.de/global#subway-lightrail/geo/13/48.11396436875464/11.539421081542969
+# Map Helper for Jet Lag The Game: Munich
 
-https://github.com/MoritzP2602/Jet-Lag-The-Game_hide-seek_Munich
+This repository will help generate Google Custom Maps -compatible layer files.
+
+Current Features:
+* Only works for Munich, Bavaria, Germany.
+* Generates layers for:
+  * Overall game border polygon.
+  * Lines and points for transit stations in their own layers (tram, subway/lightrail, commuter rail).
+* for the devs:
+  * 5 easy steps for contributors to set up the repo.
+  * Comprehensive test suite tailed to this domain (unit tests, visual regression tests).
+  * Seamless & comprehensively configured formatting, linting, and type-checking.
+  * See [CONTRIBUTING.md](./CONTRIBUTING.md) for more.
