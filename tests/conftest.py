@@ -94,23 +94,16 @@ def pytest_exception_interact(node: pytest.Item, call: pytest.CallInfo) -> None:
             exception_message=str(call.excinfo.value),
         )
 
-        # Render Rich traceback directly to avoid duplication
+        # Render Rich traceback without re-raising the exception
         console = Console()
-
-        def _render_traceback() -> None:
-            """Render the traceback using Rich."""
-            if call.excinfo is not None and call.excinfo.value is not None:  # pyright: ignore[reportUnnecessaryComparison]
-                raise call.excinfo.value
-
-        try:
-            _render_traceback()
-        except (ValueError, RuntimeError, ImportError, AttributeError, TypeError):
-            # Now we're in an exception context, Rich can render the traceback
-            traceback = Traceback(
-                show_locals=True,
-                max_frames=5,
-            )
-            console.print(traceback)
+        traceback = Traceback.from_exception(
+            call.excinfo.type,
+            call.excinfo.value,
+            call.excinfo.tb,
+            show_locals=True,
+            max_frames=5,
+        )
+        console.print(traceback)
 
 
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> pytest.TestReport:  # pyright: ignore[reportMissingTypeArgument]
