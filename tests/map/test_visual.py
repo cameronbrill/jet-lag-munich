@@ -94,7 +94,7 @@ class TestMunichBasemap:
 
         # Add basemap using contextily's simple approach
         # This automatically handles coordinate system conversion and zoom level calculation
-        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Positron) # ty: ignore[unresolved-attribute]
+        ctx.add_basemap(ax, crs=munich_boundary_data.crs, source=ctx.providers.CartoDB.Positron)  # ty: ignore[unresolved-attribute]
 
         # Customize the map
         ax.set_title("Munich City Boundary with Basemap", fontsize=16, fontweight="bold")
