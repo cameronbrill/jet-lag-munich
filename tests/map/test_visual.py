@@ -12,35 +12,6 @@ import numpy as np
 import pytest
 from syrupy.extensions.image import PNGImageSnapshotExtension
 
-# Set random seeds for consistent cross-platform results
-random.seed(42)
-np.random.seed(42)
-
-# Configure matplotlib for consistent cross-platform rendering
-matplotlib.use("Agg")  # Use non-interactive backend
-plt.rcParams.update({
-    "font.family": "DejaVu Sans",  # Use consistent font
-    "font.size": 10,
-    "figure.dpi": 100,  # Consistent DPI
-    "savefig.dpi": 100,
-    "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.1,
-    "figure.facecolor": "white",
-    "axes.facecolor": "white",
-    # Additional settings for cross-platform consistency
-    "font.serif": ["DejaVu Serif"],
-    "font.sans-serif": ["DejaVu Sans"],
-    "font.monospace": ["DejaVu Sans Mono"],
-    "axes.linewidth": 0.5,
-    "grid.linewidth": 0.5,
-    "lines.linewidth": 1.0,
-    "patch.linewidth": 0.5,
-    "xtick.major.width": 0.5,
-    "ytick.major.width": 0.5,
-    "xtick.minor.width": 0.5,
-    "ytick.minor.width": 0.5,
-})
-
 from core.map.main import (
     MunichGeoJson,
     extract_boundary_polygon,
@@ -48,8 +19,39 @@ from core.map.main import (
     separate_geometries,
 )
 
+# Set random seeds for consistent cross-platform results
+random.seed(42)
+np.random.seed(42)
 
-def _generate_consistent_image(fig: plt.Figure) -> bytes:
+# Configure matplotlib for consistent cross-platform rendering
+matplotlib.use("Agg")  # Use non-interactive backend
+plt.rcParams.update(
+    {
+        "font.family": "DejaVu Sans",  # Use consistent font
+        "font.size": 10,
+        "figure.dpi": 100,  # Consistent DPI
+        "savefig.dpi": 100,
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.1,
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+        # Additional settings for cross-platform consistency
+        "font.serif": ["DejaVu Serif"],
+        "font.sans-serif": ["DejaVu Sans"],
+        "font.monospace": ["DejaVu Sans Mono"],
+        "axes.linewidth": 0.5,
+        "grid.linewidth": 0.5,
+        "lines.linewidth": 1.0,
+        "patch.linewidth": 0.5,
+        "xtick.major.width": 0.5,
+        "ytick.major.width": 0.5,
+        "xtick.minor.width": 0.5,
+        "ytick.minor.width": 0.5,
+    }
+)
+
+
+def _generate_consistent_image(fig: plt.Figure) -> bytes:  # pyright: ignore[reportPrivateImportUsage]
     """Generate a consistent image for cross-platform snapshot testing."""
     import io
 
