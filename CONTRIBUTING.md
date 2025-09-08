@@ -26,14 +26,14 @@ That's it! Your environment is set up :)
 
 ```bash
 # Format code
-mise format
+mise run format
 
 # Check linting
-mise lint
+mise run lint
 
 # Type checking
-mise typecheck
+mise run typecheck
 
 # Run tests
-mise test
+mise run test
 ```
