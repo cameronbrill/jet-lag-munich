@@ -273,34 +273,12 @@ jobs:
           UPDATED_VOYAGER_URL=$(upload_to_imgur "tests/map/__snapshots__/test_visual/TestMunichCompleteSystem.test_munich_complete_transit_system_voyager.png")
           echo "| ![Original]($ORIGINAL_VOYAGER_URL) | ![Updated]($UPDATED_VOYAGER_URL) |" >> visual-snapshots-comment.md
 
-      - name: Unmark visual snapshots comment as outdated (when tests fail)
-        if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
-        run: |
-          # Find the comment ID for the visual snapshots comment
-          COMMENT_ID=$(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("Visual Test Snapshots"))) | .id' | head -1)
-
-          if [ -n "$COMMENT_ID" ]; then
-            echo "Unmarking comment $COMMENT_ID as not outdated"
-            # Get current comment body and unmark as outdated
-            CURRENT_BODY=$(gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID --jq '.body')
-            # Remove strikethrough formatting if present and set outdated to false
-            CLEAN_BODY=$(echo "$CURRENT_BODY" | sed 's/~~//g')
-            gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID \
-              --method PATCH \
-              --field body="$CLEAN_BODY" \
-              --field outdated=false
-          else
-            echo "No visual snapshots comment found to unmark as outdated"
-          fi
-
-
-      - name: Update Comment with visual snapshots (comparison mode)
+      - name: Create or update visual snapshots comment (comparison mode)
         uses: ./.github/actions/find-update-or-create-comment
         if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          body-includes: "Visual Test Snapshots"
+          body-includes: "Visual Test Snapshots Comparison"
           comment-author: "github-actions[bot]"
           body-path: visual-snapshots-comment.md
           edit-mode: replace
