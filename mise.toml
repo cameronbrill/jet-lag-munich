@@ -84,11 +84,18 @@ echo "✅ Project setup complete!"
   description = "Run fast tests only"
   run         = "uv run pytest -m \"not slow\""
 
+[tasks."test:fast:ci"]
+  description = "Run fast tests only for CI"
+  run         = "mise run test:fast --junit-xml=results/pytest-junit.xml"
+
 [tasks."test:slow"]
   description = "Run slow tests only"
   run         = "uv run pytest -m slow"
   sources     = ["tests/test_visual.py", "tests/*.py", "core/**/*.py"]
 
+[tasks."test:slow:ci"]
+  description = "Run slow tests only"
+  run         = "mise run test:slow --junit-xml=results/pytest-slow-junit.xml"
 
 [tasks.check]
   description = "Run all checks (format, lint, typecheck, test)"
