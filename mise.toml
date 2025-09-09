@@ -43,11 +43,15 @@ echo "✅ Project setup complete!"
   description = "Lint code with taplo"
   run         = "taplo lint --no-schema"
 
+[tasks."lint:infisical"]
+  description = "Scan for secrets checked into code using Infisical"
+  run         = "infisical scan"
+
 [tasks.lint]
-  depends = ["lint:ruff", "lint:taplo"]
+  depends = ["lint:*"]
 
 [tasks."lint:ci"]
-  depends = ["lint:ruff --output-format=github", "lint:taplo"]
+  depends = ["lint:ruff --output-format=github", "lint:taplo", "lint:infisical"]
 
 [tasks.lint-fix]
   description = "Lint and auto-fix code with ruff"
