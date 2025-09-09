@@ -316,12 +316,6 @@ wheels = [
 ]
 
 [[package]]
-name = "gdal"
-version = "3.4.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c5/f6/4fed0cacc8a6fb5d7659a05d300e01a1a13e2d9febf1911b05695057c662/GDAL-3.4.1.tar.gz", hash = "sha256:b19e8143bc2c0d3e222789a465d82b6874236eb78801aec608bf5c8c44d20fcf", size = 755854, upload-time = "2022-01-04T11:10:53.023Z" }
-
-[[package]]
 name = "geographiclib"
 version = "2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -430,7 +424,6 @@ source = { editable = "." }
 dependencies = [
     { name = "contextily" },
     { name = "folium" },
-    { name = "gdal" },
     { name = "geopandas" },
     { name = "httpx" },
     { name = "matplotlib" },
@@ -458,7 +451,6 @@ dev = [
 requires-dist = [
     { name = "contextily", specifier = ">=1.4.0" },
     { name = "folium", specifier = ">=0.14.0" },
-    { name = "gdal", specifier = "==3.4.1" },
     { name = "geopandas", specifier = "==1.1.1" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "matplotlib", specifier = ">=3.7.0" },
