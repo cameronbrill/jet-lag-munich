@@ -88,7 +88,7 @@ jobs:
       - name: Run fast tests
         if: ${{ github.event_name == 'pull_request'}}
         run: |
-          uv run pytest -q --junit-xml=results/pytest-junit.xml -m "not slow"
+          mise run test:fast:ci
 
       - name: Create test summary
         uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2
@@ -123,7 +123,7 @@ jobs:
       - name: Run slow tests (original snapshots)
         id: slow-tests-original
         run: |
-          uv run pytest -q --junit-xml=results/pytest-slow-junit.xml -m "slow"
+          mise run test:slow:ci
         if: ${{ github.event_name == 'pull_request' && !cancelled() }}
 
       - name: Create test summary
@@ -174,7 +174,7 @@ jobs:
       - name: Run slow tests with snapshot update (only failed tests)
         id: slow-tests-updated
         run: |
-          uv run pytest -q --junit-xml=results/pytest-slow-updated-junit.xml --last-failed --snapshot-update
+          mise run test:slow:ci --last-failed --snapshot-update
         if: ${{ github.event_name == 'pull_request' && !cancelled() && steps.slow-tests-original.outcome == 'failure' }}
 
       - name: Upload images to imgur and create comparison comment
@@ -296,7 +296,7 @@ jobs:
       - name: Run tests with coverage
         if: ${{ !cancelled() }}
         run: |
-          uv run pytest --cov=core --cov-report=term-missing
+          mise run test:cov
 
   build:
     name: Build
