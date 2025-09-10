@@ -11,6 +11,10 @@
       // We only want to automerge when we have branch protections enabled, but we can't do that
       // when the repository is private so we disable automerge in the meantime
       "automerge": false
+    },
+    {
+      "matchPackageNames": ["/pytest/"],
+      "groupName": "pytest"
     }
   ],
   "automergeStrategy": "squash",
