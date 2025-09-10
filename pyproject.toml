@@ -10,8 +10,8 @@
     "structlog==25.4.0",
     "pandas==2.3.2",
     "matplotlib==3.10.6",
-    "contextily==1.4.0",
-    "folium==0.14.0",
+    "contextily==1.6.2",
+    "folium==0.20.0",
   ]
 
 [dependency-groups]
