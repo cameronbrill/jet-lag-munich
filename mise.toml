@@ -9,7 +9,7 @@
   dprint               = "0.50.1"
   "cargo:taplo-cli"    = "0.10.0"
   python               = "3.13"
-  uv                   = "0.8.15"
+  uv                   = "0.8.16"
 
 [env]
   # Project environment variables
