@@ -28,7 +28,7 @@
     # linting and formatting
     "pyright==1.1.405",
     "ruff==0.12.9",
-    "types-pyyaml==6.0.12.20250822",
+    "types-pyyaml==6.0.12.20250915",
     "ssort==0.15.0",
     "ty==0.0.1a20",
 
