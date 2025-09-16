@@ -14,13 +14,20 @@
 [env]
   # Project environment variables
   PYTHONPATH   = "."
-  PROJECT_NAME = "crypto-algo-trader"
+  PROJECT_NAME = "jet-lag-munich"
   ENV          = "development"
 
   # Tool configurations
   RUFF_CACHE_DIR   = ".ruff_cache"
   PYTEST_CACHE_DIR = ".pytest_cache"
   TY_CONFIG_FILE   = "{{config_root}}/.toolchain/python/ty/base.toml"
+
+  # Manim optimization environment variables
+  MANIM_RENDERER       = "opengl" # Use GPU acceleration when available
+  OMP_NUM_THREADS      = "32"     # Optimize for high-core-count CPUs (adjust for your system)
+  NUMBA_NUM_THREADS    = "32"     # Optimize NumPy/scientific computing
+  OPENBLAS_NUM_THREADS = "32"     # Optimize linear algebra operations
+  MKL_NUM_THREADS      = "32"     # Intel Math Kernel Library optimization
 
 [tasks.setup]
   description = "Initial project setup"
@@ -125,3 +132,41 @@ echo "✅ Cleaned project artifacts"
 
 [tasks.gen]
   run = "uv run map"
+
+# Manim animation tasks
+[tasks."manim:test"]
+  description = "Test timeline animation components"
+  run         = "uv run python test_timeline_animation.py"
+
+[tasks."manim:simple"]
+  description = "Generate simple timeline animation (low quality, fast)"
+  run         = "uv run manim -pql animate_timeline_simple_nyc.py SimpleTimelineAnimation"
+
+[tasks."manim:real-nyc"]
+  description = "Generate animation with real NYC subway system (requires component-19.json)"
+  run         = "uv run manim -pql animate_timeline_real_nyc.py RealNYCTransitAnimation"
+
+[tasks."manim:hq"]
+  description = "Generate high-quality timeline animation"
+  run         = "uv run manim -pqh animate_timeline_real_nyc.py RealNYCTransitAnimation"
+
+[tasks."manim:4k"]
+  description = "Generate 4K timeline animation (gaming PC recommended)"
+  run         = "uv run manim --resolution 3840,2160 -qh animate_timeline_real_nyc.py RealNYCTransitAnimation"
+
+[tasks."manim:60fps"]
+  description = "Generate 60fps timeline animation"
+  run         = "uv run manim --fps 60 -qh animate_timeline_real_nyc.py RealNYCTransitAnimation"
+
+[tasks."manim:gif"]
+  description = "Generate GIF version of timeline animation"
+  run         = "uv run manim -pql --format=gif animate_timeline_real_nyc.py RealNYCTransitAnimation"
+
+[tasks."manim:clean"]
+  description = "Clean Manim output files"
+  run = """
+rm -rf media/
+rm -f *.png
+rm -f *transit_map*.png
+echo "✅ Cleaned Manim output files"
+"""
