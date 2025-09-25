@@ -5,7 +5,7 @@
   auto_install = false
 
 [tools]
-  "npm:@infisical/cli" = "0.41.99"
+  "npm:@infisical/cli" = "0.42.6"
   dprint               = "0.50.1"
   "cargo:taplo-cli"    = "0.10.0"
   python               = "3.13"
